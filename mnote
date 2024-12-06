@@ -1,0 +1,217 @@
+#!/bin/bash
+
+set -e
+
+# Default values
+CONFIG_DIR="${HOME}/.config/mnote"
+DEFAULT_PROMPT_FILE="${CONFIG_DIR}/prompts/summarize"
+CONFIG_FILE="${CONFIG_DIR}/config"
+
+# Ensure the config directory and default prompt file exist
+mkdir -p "${CONFIG_DIR}/prompts"
+if [ ! -f "$DEFAULT_PROMPT_FILE" ]; then
+    cat > "$DEFAULT_PROMPT_FILE" <<EOF
+Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented. If specific names are included in the transcript, use them to accurately attribute the statements. Also document all important feedback and planned actions. Pay attention to details on time frames, responsibilities, open questions and any next steps. Conclude the summary with a brief overview of the key findings and next steps.
+EOF
+fi
+
+# Ensure the config file exists and has default values
+if [ ! -f "$CONFIG_FILE" ]; then
+    cat > "$CONFIG_FILE" <<EOF
+# Transcription API URL
+TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
+
+# Whisper Model for Transcription
+WHISPER_MODEL=faster-whisper-medium-en-cpu
+
+# ChatGPT Model for Summarization
+CHATGPT_MODEL=gpt-4o-2024-05-13
+EOF
+fi
+
+# Function to display help
+show_help() {
+    cat <<EOF
+Usage: $0 [OPTIONS] <video_directory>
+
+mnote processes video files in the specified directory to:
+1. Extract audio from each video file.
+2. Transcribe the audio using a transcription API.
+3. Generate a detailed summary of the transcription based on a specified prompt.
+
+Options:
+  --prompt <prompt_name>  Specify the name of the prompt file located in ~/.config/mnote/prompts.
+                          Defaults to "summarize".
+  --help                  Show this help message and exit.
+
+Dependencies:
+  - ffmpeg   : Required for extracting audio from video files.
+  - curl     : Required for making API requests to the transcription service.
+  - jq       : Required for parsing JSON output from the transcription API.
+  - chatgpt  : Required for summarizing the transcription. Install it from:
+                https://github.com/kardolus/chatgpt-cli
+
+Environment Variables:
+  - OPENAI_API_KEY : Required by the chatgpt CLI tool to authenticate with OpenAI's API.
+                     You must export this variable before running the script:
+                     export OPENAI_API_KEY="your_openai_api_key"
+
+Configuration:
+  - The transcription API URL, Whisper model, and ChatGPT model are configurable in:
+    ${CONFIG_FILE}
+
+Configuration File Defaults:
+  TRANSCRIPTION_API_URL : URL for the transcription API.
+  WHISPER_MODEL         : Whisper model for transcription (e.g., faster-whisper-medium-en-cpu).
+  CHATGPT_MODEL         : ChatGPT model for summarization (e.g., gpt-4o-2024-05-13).
+
+Note:
+  The transcription service is based on KubeAI and is installed in a Kubernetes cluster via a Helm chart.
+  Ensure your Kubernetes cluster is configured and the service is deployed before using this script.
+
+Prompt Management:
+  - mnote looks for prompt files in the ~/.config/mnote/prompts folder.
+  - The default prompt file is "summarize", created automatically if it doesn't exist.
+  - To add custom prompts, create a new file in ~/.config/mnote/prompts with the desired content.
+  
+Examples:
+  Default usage (with "summarize" prompt):
+    $0 /path/to/video/files
+
+  Specify a custom prompt (e.g., "meeting"):
+    $0 --prompt meeting /path/to/video/files
+EOF
+}
+
+# Function to check required commands
+check_commands() {
+    local missing=()
+    for cmd in ffmpeg curl jq chatgpt; do
+        if ! command -v "$cmd" &>/dev/null; then
+            missing+=("$cmd")
+        fi
+    done
+
+    if [ ${#missing[@]} -ne 0 ]; then
+        echo "Error: The following required commands are not installed or not in PATH:"
+        for cmd in "${missing[@]}"; do
+            echo "  - $cmd"
+        done
+        echo "For chatgpt, install it from: https://github.com/kardolus/chatgpt-cli"
+        exit 1
+    fi
+}
+
+# Function to check OPENAI_API_KEY
+check_openai_api_key() {
+    if [ -z "$OPENAI_API_KEY" ]; then
+        echo "Error: The environment variable OPENAI_API_KEY is not set."
+        echo "Please set it to your OpenAI API key:"
+        echo "  export OPENAI_API_KEY=\"your_openai_api_key\""
+        exit 1
+    fi
+}
+
+# Load configuration
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+    else
+        echo "Error: Configuration file not found at $CONFIG_FILE"
+        exit 1
+    fi
+
+    # Ensure all required config values are set
+    if [ -z "$TRANSCRIPTION_API_URL" ] || [ -z "$WHISPER_MODEL" ] || [ -z "$CHATGPT_MODEL" ]; then
+        echo "Error: Missing required configuration in $CONFIG_FILE"
+        echo "Ensure the following are set:"
+        echo "  TRANSCRIPTION_API_URL, WHISPER_MODEL, CHATGPT_MODEL"
+        exit 1
+    fi
+}
+
+# Parse arguments
+PROMPT_NAME="summarize"
+VIDEO_DIR=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --prompt)
+            PROMPT_NAME="$2"
+            shift 2
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            VIDEO_DIR="$1"
+            shift
+            ;;
+    esac
+done
+
+# Ensure video directory is provided and exists
+if [ -z "$VIDEO_DIR" ] || [ ! -d "$VIDEO_DIR" ]; then
+    echo "Error: Video directory not specified or does not exist."
+    show_help
+    exit 1
+fi
+
+# Check if required commands are installed
+check_commands
+
+# Check if OPENAI_API_KEY is set
+check_openai_api_key
+
+# Load configuration
+load_config
+
+# Locate the prompt file
+PROMPT_FILE="${CONFIG_DIR}/prompts/${PROMPT_NAME}"
+if [ ! -f "$PROMPT_FILE" ]; then
+    echo "Error: Prompt file not found: $PROMPT_FILE"
+    exit 1
+fi
+
+# Read prompt content
+PROMPT=$(cat "$PROMPT_FILE")
+
+mkdir -p ~/tmp
+
+# Iterate through all video files in the directory
+for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
+    # Skip if no matching files are found
+    [ -e "$VIDEO" ] || continue
+
+    # Extract filename and directory details
+    filename="${VIDEO##*/}"
+    TITLE="${filename%.*}"
+    DIR=$(dirname "${VIDEO}")
+
+    # Extract audio if not already extracted
+    if [ -f ~/tmp/"${TITLE}.mp3" ]; then
+        echo "Audio file for ${filename} already exists"
+    else
+        echo "Extracting audio from ${filename}"
+        ffmpeg -i "${VIDEO}" -vn -acodec libmp3lame -q:a 5 ~/tmp/"${TITLE}.mp3"
+    fi
+
+    # Perform transcription if not already done
+    if [ -f ~/tmp/"${TITLE}.json" ]; then
+        echo "Transcription for ${filename} already exists"
+    else
+        echo "Transcribing audio from ${filename}"
+        curl "$TRANSCRIPTION_API_URL" \
+            -F "file=@${HOME}/tmp/${TITLE}.mp3" \
+            -F "language=en" \
+            -F "model=$WHISPER_MODEL" > ~/tmp/"${TITLE}.json"
+    fi
+
+    # Generate a text file from the transcription
+    OUTPUT_FILE="${DIR}/${TITLE}.txt"
+    echo "Generating text file for ${filename} at ${OUTPUT_FILE}"
+    cat ~/tmp/"${TITLE}.json" | jq ".text" | chatgpt --model "$CHATGPT_MODEL" --prompt "$PROMPT" > "$OUTPUT_FILE"
+done
+
+echo "Processing complete."
