@@ -73,7 +73,7 @@ The `config` file contains the following default values:
 
 ```ini
 # Transcription API URL
-TRANSCRIPTION_API_URL=https://kubeai.k8s-internal.home.derstappen.com/openai/v1/audio/transcriptions
+TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
 # Whisper Model for Transcription
 WHISPER_MODEL=faster-whisper-medium-en-cpu
