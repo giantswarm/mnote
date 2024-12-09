@@ -174,9 +174,6 @@ if [ ! -f "$PROMPT_FILE" ]; then
     exit 1
 fi
 
-# Read prompt content
-PROMPT=$(cat "$PROMPT_FILE")
-
 mkdir -p ~/tmp
 
 # Iterate through all video files in the directory
@@ -191,7 +188,7 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
 
     # Extract audio if not already extracted
     if [ -f ~/tmp/"${TITLE}.mp3" ]; then
-        echo "Audio file for ${filename} already exists"
+        echo "Audio file for ${TITLE}.mp3 already exists"
     else
         echo "Extracting audio from ${filename}"
         ffmpeg -i "${VIDEO}" -vn -acodec libmp3lame -q:a 5 ~/tmp/"${TITLE}.mp3"
@@ -199,7 +196,7 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
 
     # Perform transcription if not already done
     if [ -f ~/tmp/"${TITLE}.json" ]; then
-        echo "Transcription for ${filename} already exists"
+        echo "Transcription for ${TITLE}.json already exists"
     else
         echo "Transcribing audio from ${filename}"
         curl "$TRANSCRIPTION_API_URL" \
@@ -211,7 +208,7 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
     # Generate a text file from the transcription
     OUTPUT_FILE="${DIR}/${TITLE}.txt"
     echo "Generating text file for ${filename} at ${OUTPUT_FILE}"
-    cat ~/tmp/"${TITLE}.json" | jq ".text" | chatgpt --model "$CHATGPT_MODEL" --prompt "$PROMPT" > "$OUTPUT_FILE"
+    cat ~/tmp/"${TITLE}.json" | jq ".text" | chatgpt --model "$CHATGPT_MODEL" --prompt "$PROMPT_FILE" > "$OUTPUT_FILE"
 done
 
 echo "Processing complete."
