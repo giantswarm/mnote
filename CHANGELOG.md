@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.5] - 2024-03-12
+
+### Added
+- Support for multiple languages (German, Spanish, French)
+- Language-specific Whisper models for optimized transcription
+- Automatic language detection using openai/whisper-large-v3
+- Language selection option (--language) with support for de, es, fr, and auto
+- Comprehensive KubeAI installation documentation
+
+### Changed
+- Updated default Whisper model to openai/whisper-large-v3 for better multilingual support
+- Enhanced transcription API to support language-specific parameters
+
 ## [0.0.4] - 2024-12-12
 
 - Enhanced prompt handling to support multiple summaries of the same video using different prompts

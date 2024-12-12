@@ -75,8 +75,8 @@ The `config` file contains the following default values:
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
-# Whisper Model for Transcription
-WHISPER_MODEL=faster-whisper-medium-en-cpu
+# Whisper Model for Transcription (use language-specific or large for autodetect)
+WHISPER_MODEL=openai/whisper-large-v3
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -112,6 +112,8 @@ mnote <video_directory>
 ### Options
 
 - `--prompt <prompt_name>`: Use a custom prompt file from `~/.config/mnote/prompts`.
+- `--language <lang_code>`: Specify the language for transcription (de, es, fr, or auto).
+                          Defaults to "auto" for automatic detection.
 - `--help`: Display the help message.
 
 ### Examples
@@ -133,6 +135,15 @@ mnote --prompt meeting /path/to/videos
 
 Uses the custom prompt file `~/.config/mnote/prompts/meeting` for summarization.
 
+#### Specify Language for Transcription
+
+```bash
+mnote --language de /path/to/videos     # German
+mnote --language es /path/to/videos     # Spanish
+mnote --language fr /path/to/videos     # French
+mnote --language auto /path/to/videos   # Auto-detect language
+```
+
 ---
 
 ## How It Works
@@ -142,7 +153,12 @@ Uses the custom prompt file `~/.config/mnote/prompts/meeting` for summarization.
 
 2. **Transcription**:
    Audio files are sent to a Whisper-based transcription API specified in the
-   configuration (`TRANSCRIPTION_API_URL`).
+   configuration (`TRANSCRIPTION_API_URL`). The script supports multiple languages
+   and will use language-specific models when specified:
+   - German: Uses primeline/whisper-tiny-german
+   - Spanish: Uses jonatasgrosman/whisper-large-v2-spanish
+   - French: Uses jonatasgrosman/whisper-large-v2-french
+   - Auto-detect: Uses openai/whisper-large-v3 for automatic language detection
 
 3. **Summarization**:
    Transcriptions are processed using the `chatgpt` CLI tool with the
@@ -181,10 +197,50 @@ Ensure the following tools are installed:
 
 ## Notes
 
-- **Transcription Service**: The transcription service is based on KubeAI,
-  deployed via a Helm chart in a Kubernetes cluster. Ensure the service is
-  properly configured and accessible via the `TRANSCRIPTION_API_URL` in the
-  configuration file.
+- **KubeAI Installation**: The transcription service requires KubeAI with appropriate Whisper models.
+  Follow these steps to set up the service:
+
+  1. Add the KubeAI Helm repository:
+     ```bash
+     helm repo add kubeai https://charts.kubeai.com
+     helm repo update
+     ```
+
+  2. Install KubeAI (version 0.9.0):
+     ```bash
+     helm install kubeai kubeai/kubeai --version 0.9.0
+     ```
+
+  3. Create a values file for the models:
+     ```bash
+     cat > values.yaml <<EOF
+     catalog:
+       faster-whisper-medium-en-cpu:
+         enabled: true
+         minReplicas: 1
+       openai/whisper-large-v3:
+         enabled: true
+         minReplicas: 1
+       primeline/whisper-tiny-german:
+         enabled: true
+         minReplicas: 1
+       jonatasgrosman/whisper-large-v2-spanish:
+         enabled: true
+         minReplicas: 1
+       jonatasgrosman/whisper-large-v2-french:
+         enabled: true
+         minReplicas: 1
+     EOF
+     ```
+
+  4. Install the models (version 0.9.0):
+     ```bash
+     helm install kubeai-models kubeai/kubeai-models --version 0.9.0 -f values.yaml
+     ```
+
+  5. Configure mnote:
+     Update the `TRANSCRIPTION_API_URL` in your configuration to point to your KubeAI service endpoint.
+
 - **OpenAI API**: You must have an OpenAI API key for the `chatgpt` CLI tool.
   Register at [OpenAI](https://platform.openai.com/).
 

@@ -21,8 +21,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
-# Whisper Model for Transcription
-WHISPER_MODEL=faster-whisper-medium-en-cpu
+# Whisper Model for Transcription (use language-specific or large for autodetect)
+WHISPER_MODEL=openai/whisper-large-v3
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -42,6 +42,8 @@ mnote processes video files in the specified directory to:
 Options:
   --prompt <prompt_name>  Specify the name of the prompt file located in ~/.config/mnote/prompts.
                           Defaults to "summarize".
+  --language <lang_code>  Specify the language code (de, es, fr, or auto).
+                          Defaults to "auto" for automatic detection.
   --help                  Show this help message and exit.
 
 Dependencies:
@@ -80,6 +82,12 @@ Examples:
 
   Specify a custom prompt (e.g., "meeting"):
     $0 --prompt meeting /path/to/video/files
+
+  Specify language for transcription:
+    $0 --language de /path/to/video/files     # German
+    $0 --language es /path/to/video/files     # Spanish
+    $0 --language fr /path/to/video/files     # French
+    $0 --language auto /path/to/video/files   # Auto-detect language
 EOF
 }
 
@@ -130,14 +138,38 @@ load_config() {
     fi
 }
 
+# Function to select appropriate Whisper model based on language
+select_whisper_model() {
+    local lang="$1"
+    case "$lang" in
+        "de")
+            echo "primeline/whisper-tiny-german"
+            ;;
+        "es")
+            echo "jonatasgrosman/whisper-large-v2-spanish"
+            ;;
+        "fr")
+            echo "jonatasgrosman/whisper-large-v2-french"
+            ;;
+        *)
+            echo "$WHISPER_MODEL"
+            ;;
+    esac
+}
+
 # Parse arguments
 PROMPT_NAME="summarize"
+LANGUAGE="auto"
 VIDEO_DIR=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --prompt)
             PROMPT_NAME="$2"
+            shift 2
+            ;;
+        --language)
+            LANGUAGE="$2"
             shift 2
             ;;
         --help)
@@ -194,15 +226,18 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
         ffmpeg -i "${VIDEO}" -vn -acodec libmp3lame -q:a 5 ~/tmp/"${TITLE}.mp3"
     fi
 
+    # Select appropriate model based on language
+    SELECTED_MODEL=$(select_whisper_model "$LANGUAGE")
+
     # Perform transcription if not already done
     if [ -f ~/tmp/"${TITLE}.json" ]; then
         echo "Transcription for ${TITLE}.json already exists"
     else
-        echo "Transcribing audio from ${filename}"
+        echo "Transcribing audio from ${filename} using ${SELECTED_MODEL}"
         curl "$TRANSCRIPTION_API_URL" \
             -F "file=@${HOME}/tmp/${TITLE}.mp3" \
-            -F "language=en" \
-            -F "model=$WHISPER_MODEL" > ~/tmp/"${TITLE}.json"
+            -F "language=${LANGUAGE}" \
+            -F "model=${SELECTED_MODEL}" > ~/tmp/"${TITLE}.json"
     fi
 
     # Generate a text file from the transcription
