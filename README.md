@@ -75,8 +75,8 @@ The `config` file contains the following default values:
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
-# Whisper Model for Transcription (supports all languages with auto-detection)
-WHISPER_MODEL=systran-faster-whisper-large-v3
+# Whisper Model for Transcription (default English model, auto-detection available)
+WHISPER_MODEL=faster-whisper-medium-en-cpu
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -154,8 +154,8 @@ mnote --language auto /path/to/videos   # Auto-detect language
 2. **Transcription**:
    Audio files are sent to a Whisper-based transcription API specified in the
    configuration (`TRANSCRIPTION_API_URL`). The script uses Systran's faster-whisper-large-v3
-   model, which supports all languages and provides automatic language detection without
-   requiring explicit language specification.
+   model for non-English languages and auto-detection, while faster-whisper-medium-en-cpu
+   is used as the default model for English.
 
 3. **Summarization**:
    Transcriptions are processed using the `chatgpt` CLI tool with the

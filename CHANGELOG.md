@@ -4,15 +4,14 @@
 
 ### Added
 - Support for automatic language detection using Systran/faster-whisper-large-v3
-- Language selection option (--language) for backward compatibility
+- Language selection option (--language) for explicit language specification
 - Comprehensive KubeAI installation documentation
 
 ### Changed
-- Switched to Systran/faster-whisper-large-v3 as the universal model for all languages
-- Removed language parameter from transcription API for automatic language detection
+- Added Systran/faster-whisper-large-v3 for non-English languages and auto-detection
+- Maintained faster-whisper-medium-en-cpu as default model for English
+- Language parameter included in transcription API when language is explicitly specified
 - Updated KubeAI model configuration to use "FasterWhisper" engine
-- Simplified model configuration by using a single universal model
-- Maintained faster-whisper-medium-en-cpu as optional model for backward compatibility
 
 ### Fixed
 - Corrected KubeAI model configuration format and engine settings
