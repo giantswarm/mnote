@@ -10,6 +10,9 @@
 - Comprehensive KubeAI installation documentation
 
 ### Changed
+- Updated KubeAI model configuration format to match Hugging Face requirements
+- Added proper model metadata (features, owner, url, engine, resourceProfile)
+- Fixed model naming to comply with KubeAI resource naming rules
 - Restored faster-whisper-medium-en-cpu as default model for English transcription
 - Enhanced transcription API to support language-specific parameters
 

@@ -219,20 +219,45 @@ Ensure the following tools are installed:
        # Default English model
        faster-whisper-medium-en-cpu:
          enabled: true
+         features: ["AudioTranscription"]
+         owner: "Systran"
+         url: "hf://Systran/faster-whisper-medium-en"
+         engine: "Infinity"
+         resourceProfile: "cpu:1"
          minReplicas: 1
        # Language-specific models
-       primeline/whisper-tiny-german:
+       primeline-whisper-tiny-german:
          enabled: true
+         features: ["AudioTranscription"]
+         owner: "primeline"
+         url: "hf://primeline/whisper-tiny-german"
+         engine: "Infinity"
+         resourceProfile: "cpu:1"
          minReplicas: 1
-       jonatasgrosman/whisper-large-v2-spanish:
+       jonatasgrosman-whisper-large-v2-spanish:
          enabled: true
+         features: ["AudioTranscription"]
+         owner: "jonatasgrosman"
+         url: "hf://jonatasgrosman/whisper-large-v2-spanish"
+         engine: "Infinity"
+         resourceProfile: "cpu:2"
          minReplicas: 1
-       jonatasgrosman/whisper-large-v2-french:
+       jonatasgrosman-whisper-large-v2-french:
          enabled: true
+         features: ["AudioTranscription"]
+         owner: "jonatasgrosman"
+         url: "hf://jonatasgrosman/whisper-large-v2-french"
+         engine: "Infinity"
+         resourceProfile: "cpu:2"
          minReplicas: 1
        # Auto-detection model
-       openai/whisper-large-v3:
+       openai-whisper-large-v3:
          enabled: true
+         features: ["AudioTranscription"]
+         owner: "openai"
+         url: "hf://openai/whisper-large-v3"
+         engine: "Infinity"
+         resourceProfile: "cpu:2"
          minReplicas: 1
      EOF
      ```
