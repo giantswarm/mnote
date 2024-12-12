@@ -219,7 +219,7 @@ Ensure the following tools are installed:
        # Default English model
        faster-whisper-medium-en-cpu:
          enabled: true
-         features: ["AudioTranscription"]
+         features: ["SpeechToText"]
          owner: "Systran"
          url: "hf://Systran/faster-whisper-medium-en"
          engine: "Infinity"
@@ -228,7 +228,7 @@ Ensure the following tools are installed:
        # Language-specific models
        primeline-whisper-tiny-german:
          enabled: true
-         features: ["AudioTranscription"]
+         features: ["SpeechToText"]
          owner: "primeline"
          url: "hf://primeline/whisper-tiny-german"
          engine: "Infinity"
@@ -236,7 +236,7 @@ Ensure the following tools are installed:
          minReplicas: 1
        jonatasgrosman-whisper-large-v2-spanish:
          enabled: true
-         features: ["AudioTranscription"]
+         features: ["SpeechToText"]
          owner: "jonatasgrosman"
          url: "hf://jonatasgrosman/whisper-large-v2-spanish"
          engine: "Infinity"
@@ -244,7 +244,7 @@ Ensure the following tools are installed:
          minReplicas: 1
        jonatasgrosman-whisper-large-v2-french:
          enabled: true
-         features: ["AudioTranscription"]
+         features: ["SpeechToText"]
          owner: "jonatasgrosman"
          url: "hf://jonatasgrosman/whisper-large-v2-french"
          engine: "Infinity"
@@ -253,7 +253,7 @@ Ensure the following tools are installed:
        # Auto-detection model
        openai-whisper-large-v3:
          enabled: true
-         features: ["AudioTranscription"]
+         features: ["SpeechToText"]
          owner: "openai"
          url: "hf://openai/whisper-large-v3"
          engine: "Infinity"
