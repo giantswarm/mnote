@@ -143,19 +143,19 @@ select_whisper_model() {
     local lang="$1"
     case "$lang" in
         "de")
-            echo "primeline/whisper-tiny-german"
+            echo "primeline-whisper-tiny-german"
             ;;
         "es")
-            echo "jonatasgrosman/whisper-large-v2-spanish"
+            echo "jonatasgrosman-whisper-large-v2-spanish"
             ;;
         "fr")
-            echo "jonatasgrosman/whisper-large-v2-french"
+            echo "jonatasgrosman-whisper-large-v2-french"
             ;;
         "auto"|"en"|"")
             echo "faster-whisper-medium-en-cpu"
             ;;
         *)
-            echo "openai/whisper-large-v3"
+            echo "openai-whisper-large-v3"
             ;;
     esac
 }
