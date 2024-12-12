@@ -12,6 +12,8 @@
 - Maintained faster-whisper-medium-en-cpu as default model for English
 - Language parameter included in transcription API when language is explicitly specified
 - Updated KubeAI model configuration to use "FasterWhisper" engine
+- Changed output file format from .txt to .md for better markdown compatibility
+- Keep all generated files (mp3, json, md) in same directory as source video for improved usability
 
 ### Fixed
 - Corrected KubeAI model configuration format and engine settings

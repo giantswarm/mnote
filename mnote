@@ -21,8 +21,18 @@ if [ ! -f "$CONFIG_FILE" ]; then
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
-# Whisper Model for Transcription (default English model)
-WHISPER_MODEL=faster-whisper-medium-en-cpu
+# Default language setting (auto, en, de, es, fr)
+DEFAULT_LANGUAGE=auto
+
+# Default models for language categories
+DEFAULT_ENGLISH_MODEL=faster-whisper-medium-en-cpu
+DEFAULT_UNIVERSAL_MODEL=systran-faster-whisper-large-v3
+
+# Language-specific model overrides (optional)
+# FORMAT: WHISPER_MODEL_<LANG>=<model_name>
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -129,25 +139,32 @@ load_config() {
         exit 1
     fi
 
-    # Ensure all required config values are set
-    if [ -z "$TRANSCRIPTION_API_URL" ] || [ -z "$WHISPER_MODEL" ] || [ -z "$CHATGPT_MODEL" ]; then
+    # Set defaults if not specified
+    DEFAULT_LANGUAGE="${DEFAULT_LANGUAGE:-auto}"
+    DEFAULT_ENGLISH_MODEL="${DEFAULT_ENGLISH_MODEL:-faster-whisper-medium-en-cpu}"
+    DEFAULT_UNIVERSAL_MODEL="${DEFAULT_UNIVERSAL_MODEL:-systran-faster-whisper-large-v3}"
+
+    # Ensure required config values are set
+    if [ -z "$TRANSCRIPTION_API_URL" ] || [ -z "$CHATGPT_MODEL" ]; then
         echo "Error: Missing required configuration in $CONFIG_FILE"
-        echo "Ensure the following are set:"
-        echo "  TRANSCRIPTION_API_URL, WHISPER_MODEL, CHATGPT_MODEL"
+        echo "Ensure TRANSCRIPTION_API_URL and CHATGPT_MODEL are set"
         exit 1
     fi
 }
 
 # Function to select appropriate Whisper model based on language
 select_whisper_model() {
-    case "$1" in
-        "en"|"")
-            echo "faster-whisper-medium-en-cpu"
-            ;;
-        *)
-            echo "systran-faster-whisper-large-v3"
-            ;;
-    esac
+    local lang="$1"
+    local model_var="WHISPER_MODEL_${lang^^}"
+
+    # Check for language-specific model override
+    if [ -n "${!model_var}" ]; then
+        echo "${!model_var}"
+    elif [ "$lang" = "en" ] || [ -z "$lang" ]; then
+        echo "${DEFAULT_ENGLISH_MODEL}"
+    else
+        echo "${DEFAULT_UNIVERSAL_MODEL}"
+    fi
 }
 
 # Parse arguments
@@ -199,8 +216,6 @@ if [ ! -f "$PROMPT_FILE" ]; then
     exit 1
 fi
 
-mkdir -p ~/tmp
-
 # Iterate through all video files in the directory
 for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
     # Skip if no matching files are found
@@ -212,45 +227,45 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
     DIR=$(dirname "${VIDEO}")
 
     # Extract audio if not already extracted
-    if [ -f ~/tmp/"${TITLE}.mp3" ]; then
+    if [ -f "${DIR}/${TITLE}.mp3" ]; then
         echo "Audio file for ${TITLE}.mp3 already exists"
     else
         echo "Extracting audio from ${filename}"
-        ffmpeg -i "${VIDEO}" -vn -acodec libmp3lame -q:a 5 ~/tmp/"${TITLE}.mp3"
+        ffmpeg -i "${VIDEO}" -vn -acodec libmp3lame -q:a 5 "${DIR}/${TITLE}.mp3"
     fi
 
     # Select appropriate model based on language
     SELECTED_MODEL=$(select_whisper_model "$LANGUAGE")
 
     # Perform transcription if not already done
-    if [ -f ~/tmp/"${TITLE}.json" ]; then
+    if [ -f "${DIR}/${TITLE}.json" ]; then
         echo "Transcription for ${TITLE}.json already exists"
     else
         echo "Transcribing audio from ${filename} using ${SELECTED_MODEL}"
         if [ "$LANGUAGE" = "auto" ]; then
             curl "$TRANSCRIPTION_API_URL" \
-                -F "file=@${HOME}/tmp/${TITLE}.mp3" \
-                -F "model=${SELECTED_MODEL}" > ~/tmp/"${TITLE}.json"
+                -F "file=@${DIR}/${TITLE}.mp3" \
+                -F "model=${SELECTED_MODEL}" > "${DIR}/${TITLE}.json"
         else
             curl "$TRANSCRIPTION_API_URL" \
-                -F "file=@${HOME}/tmp/${TITLE}.mp3" \
+                -F "file=@${DIR}/${TITLE}.mp3" \
                 -F "language=${LANGUAGE}" \
-                -F "model=${SELECTED_MODEL}" > ~/tmp/"${TITLE}.json"
+                -F "model=${SELECTED_MODEL}" > "${DIR}/${TITLE}.json"
         fi
     fi
 
     # Generate a text file from the transcription
     if [ "$PROMPT_NAME" = "summarize" ]; then
-        OUTPUT_FILE="${DIR}/${TITLE}.txt"
+        OUTPUT_FILE="${DIR}/${TITLE}.md"
     else
-        OUTPUT_FILE="${DIR}/${TITLE}_${PROMPT_NAME}.txt"
+        OUTPUT_FILE="${DIR}/${TITLE}_${PROMPT_NAME}.md"
     fi
 
     if [ -f "$OUTPUT_FILE" ]; then
         echo "Summary file ${OUTPUT_FILE} already exists, skipping ChatGPT processing"
     else
         echo "Generating text file for ${filename} at ${OUTPUT_FILE}"
-        cat ~/tmp/"${TITLE}.json" | jq ".text" | chatgpt --model "$CHATGPT_MODEL" --prompt "$PROMPT_FILE" > "$OUTPUT_FILE"
+        cat "${DIR}/${TITLE}.json" | jq ".text" | chatgpt --model "$CHATGPT_MODEL" --prompt "$PROMPT_FILE" > "$OUTPUT_FILE"
     fi
 done
 

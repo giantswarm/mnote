@@ -42,13 +42,13 @@ cd mnote
 Make the script executable:
 
 ```bash
-chmod +x mnote.sh
+chmod +x mnote
 ```
 
 (Optional) Add it to your `PATH`:
 
 ```bash
-sudo mv mnote.sh /usr/local/bin/mnote
+sudo mv mnote /usr/local/bin/mnote
 ```
 
 ---
@@ -72,11 +72,21 @@ Upon first run, **mnote** will create a configuration directory at
 The `config` file contains the following default values:
 
 ```ini
+# Default language setting (auto, en, de, es, fr)
+DEFAULT_LANGUAGE=auto
+
+# Default models for language categories
+DEFAULT_ENGLISH_MODEL=faster-whisper-medium-en-cpu
+DEFAULT_UNIVERSAL_MODEL=systran-faster-whisper-large-v3
+
+# Language-specific model overrides (optional)
+# FORMAT: WHISPER_MODEL_<LANG>=<model_name>
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3
+
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
-
-# Whisper Model for Transcription (default English model, auto-detection available)
-WHISPER_MODEL=faster-whisper-medium-en-cpu
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -149,13 +159,16 @@ mnote --language auto /path/to/videos   # Auto-detect language
 ## How It Works
 
 1. **Audio Extraction**:
-   The tool uses `ffmpeg` to extract audio from video files.
+   The tool uses `ffmpeg` to extract audio from video files, saving the `.mp3` file
+   in the same directory as the source video.
 
 2. **Transcription**:
    Audio files are sent to a Whisper-based transcription API specified in the
-   configuration (`TRANSCRIPTION_API_URL`). The script uses Systran's faster-whisper-large-v3
-   model for non-English languages and auto-detection, while faster-whisper-medium-en-cpu
-   is used as the default model for English.
+   configuration (`TRANSCRIPTION_API_URL`). The script selects the appropriate model:
+   - Uses `DEFAULT_ENGLISH_MODEL` (faster-whisper-medium-en-cpu) for English content
+   - Uses `DEFAULT_UNIVERSAL_MODEL` (systran-faster-whisper-large-v3) for other languages
+   - Supports language-specific model overrides via `WHISPER_MODEL_<LANG>` settings
+   - Saves transcription results as `.json` files alongside the source video
 
 3. **Summarization**:
    Transcriptions are processed using the `chatgpt` CLI tool with the
@@ -164,11 +177,12 @@ mnote --language auto /path/to/videos   # Auto-detect language
    unnecessary API calls.
 
 4. **Output**:
-   Summarized meeting notes are saved as `.txt` files in the same directory
-   as the input videos. When using custom prompts, the prompt name is included
-   in the output filename (e.g., `video_meeting.txt` for the "meeting" prompt).
+   Summarized meeting notes are saved as `.md` files in the same directory
+   as the input videos, along with the extracted audio (`.mp3`) and transcription
+   (`.json`) files. When using custom prompts, the prompt name is included
+   in the output filename (e.g., `video_meeting.md` for the "meeting" prompt).
    The default "summarize" prompt maintains the original filename format
-   (e.g., `video.txt`).
+   (e.g., `video.md`).
 
 ---
 
