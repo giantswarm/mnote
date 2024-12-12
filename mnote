@@ -21,8 +21,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
-# Whisper Model for Transcription (use language-specific or large for autodetect)
-WHISPER_MODEL=faster-whisper-medium-en-cpu
+# Whisper Model for Transcription (supports all languages with auto-detection)
+WHISPER_MODEL=systran-faster-whisper-large-v3
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -140,24 +140,9 @@ load_config() {
 
 # Function to select appropriate Whisper model based on language
 select_whisper_model() {
-    local lang="$1"
-    case "$lang" in
-        "de")
-            echo "primeline-whisper-tiny-german-1224"
-            ;;
-        "es")
-            echo "jonatasgrosman-whisper-large-es-cv11"
-            ;;
-        "fr")
-            echo "jonatasgrosman-whisper-large-fr-cv11"
-            ;;
-        "auto"|"en"|"")
-            echo "faster-whisper-medium-en-cpu"
-            ;;
-        *)
-            echo "openai-whisper-large-v3"
-            ;;
-    esac
+    # Always use Systran's faster-whisper-large-v3 model which supports all languages
+    # and provides automatic language detection when no language parameter is specified
+    echo "systran-faster-whisper-large-v3"
 }
 
 # Parse arguments
@@ -239,7 +224,6 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
         echo "Transcribing audio from ${filename} using ${SELECTED_MODEL}"
         curl "$TRANSCRIPTION_API_URL" \
             -F "file=@${HOME}/tmp/${TITLE}.mp3" \
-            -F "language=${LANGUAGE}" \
             -F "model=${SELECTED_MODEL}" > ~/tmp/"${TITLE}.json"
     fi
 

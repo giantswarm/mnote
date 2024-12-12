@@ -3,18 +3,19 @@
 ## [0.0.5] - 2024-03-12
 
 ### Added
-- Support for multiple languages (German, Spanish, French)
-- Language-specific Whisper models for optimized transcription
-- Automatic language detection using openai/whisper-large-v3
-- Language selection option (--language) with support for de, es, fr, and auto
+- Support for automatic language detection using Systran/faster-whisper-large-v3
+- Language selection option (--language) for backward compatibility
 - Comprehensive KubeAI installation documentation
 
 ### Changed
-- Updated KubeAI model configuration format to match Hugging Face requirements
-- Added proper model metadata (features, owner, url, engine, resourceProfile)
-- Fixed model naming to comply with KubeAI resource naming rules
-- Restored faster-whisper-medium-en-cpu as default model for English transcription
-- Enhanced transcription API to support language-specific parameters
+- Switched to Systran/faster-whisper-large-v3 as the universal model for all languages
+- Removed language parameter from transcription API for automatic language detection
+- Updated KubeAI model configuration to use "FasterWhisper" engine
+- Simplified model configuration by using a single universal model
+- Maintained faster-whisper-medium-en-cpu as optional model for backward compatibility
+
+### Fixed
+- Corrected KubeAI model configuration format and engine settings
 
 ## [0.0.4] - 2024-12-12
 

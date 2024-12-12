@@ -75,8 +75,8 @@ The `config` file contains the following default values:
 # Transcription API URL
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
-# Whisper Model for Transcription (defaults to English, with language-specific options available)
-WHISPER_MODEL=faster-whisper-medium-en-cpu
+# Whisper Model for Transcription (supports all languages with auto-detection)
+WHISPER_MODEL=systran-faster-whisper-large-v3
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -153,13 +153,9 @@ mnote --language auto /path/to/videos   # Auto-detect language
 
 2. **Transcription**:
    Audio files are sent to a Whisper-based transcription API specified in the
-   configuration (`TRANSCRIPTION_API_URL`). The script supports multiple languages
-   and will use language-specific models when specified:
-   - English (default): Uses faster-whisper-medium-en-cpu for optimal performance
-   - German: Uses primeline-whisper-tiny-german-1224
-   - Spanish: Uses jonatasgrosman-whisper-large-es-cv11
-   - French: Uses jonatasgrosman-whisper-large-fr-cv11
-   - Auto-detect: Uses openai-whisper-large-v3 for automatic language detection
+   configuration (`TRANSCRIPTION_API_URL`). The script uses Systran's faster-whisper-large-v3
+   model, which supports all languages and provides automatic language detection without
+   requiring explicit language specification.
 
 3. **Summarization**:
    Transcriptions are processed using the `chatgpt` CLI tool with the
@@ -216,55 +212,31 @@ Ensure the following tools are installed:
      ```bash
      cat > values.yaml <<EOF
      catalog:
-       # Default English model
+       # Universal Whisper model with multilingual support and auto-detection
+       systran-faster-whisper-large-v3:
+         enabled: true
+         features: ["SpeechToText"]
+         owner: "Systran"
+         url: "hf://Systran/faster-whisper-large-v3"
+         engine: "FasterWhisper"
+         resourceProfile: "cpu:2"
+         minReplicas: 1
+
+       # Default English model (for backward compatibility)
        faster-whisper-medium-en-cpu:
          enabled: true
          features: ["SpeechToText"]
          owner: "Systran"
          url: "hf://Systran/faster-whisper-medium-en"
-         engine: "Infinity"
+         engine: "FasterWhisper"
          resourceProfile: "cpu:1"
-         minReplicas: 1
-       # Language-specific models
-       primeline-whisper-tiny-german-1224:
-         enabled: true
-         features: ["SpeechToText"]
-         owner: "primeline"
-         url: "hf://primeline/whisper-tiny-german-1224"
-         engine: "Infinity"
-         resourceProfile: "cpu:1"
-         minReplicas: 1
-       jonatasgrosman-whisper-large-es-cv11:
-         enabled: true
-         features: ["SpeechToText"]
-         owner: "jonatasgrosman"
-         url: "hf://jonatasgrosman/whisper-large-es-cv11"
-         engine: "Infinity"
-         resourceProfile: "cpu:2"
-         minReplicas: 1
-       jonatasgrosman-whisper-large-fr-cv11:
-         enabled: true
-         features: ["SpeechToText"]
-         owner: "jonatasgrosman"
-         url: "hf://jonatasgrosman/whisper-large-fr-cv11"
-         engine: "Infinity"
-         resourceProfile: "cpu:2"
-         minReplicas: 1
-       # Auto-detection model
-       openai-whisper-large-v3:
-         enabled: true
-         features: ["SpeechToText"]
-         owner: "openai"
-         url: "hf://openai/whisper-large-v3"
-         engine: "Infinity"
-         resourceProfile: "cpu:2"
          minReplicas: 1
      EOF
      ```
 
   4. Install the models (version 0.9.0):
      ```bash
-     helm install kubeai-models kubeai/kubeai-models --version 0.9.0 -f values.yaml
+     helm install kubeai-models kubeai/models --version 0.9.0 -f values.yaml
      ```
 
   5. Configure mnote:
