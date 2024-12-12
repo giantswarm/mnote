@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.5] - 2024-03-12
+
+### Added
+- Support for automatic language detection using Systran/faster-whisper-large-v3
+- Language selection option (--language) for explicit language specification
+- Comprehensive KubeAI installation documentation
+
+### Changed
+- Added Systran/faster-whisper-large-v3 for non-English languages and auto-detection
+- Maintained faster-whisper-medium-en-cpu as default model for English
+- Language parameter included in transcription API when language is explicitly specified
+- Updated KubeAI model configuration to use "FasterWhisper" engine
+
+### Fixed
+- Corrected KubeAI model configuration format and engine settings
+
 ## [0.0.4] - 2024-12-12
 
 - Enhanced prompt handling to support multiple summaries of the same video using different prompts
