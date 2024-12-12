@@ -206,7 +206,12 @@ for VIDEO in "$VIDEO_DIR"/*.{mp4,mkv,avi,mov}; do
     fi
 
     # Generate a text file from the transcription
-    OUTPUT_FILE="${DIR}/${TITLE}.txt"
+    if [ "$PROMPT_NAME" = "summarize" ]; then
+        OUTPUT_FILE="${DIR}/${TITLE}.txt"
+    else
+        OUTPUT_FILE="${DIR}/${TITLE}_${PROMPT_NAME}.txt"
+    fi
+
     if [ -f "$OUTPUT_FILE" ]; then
         echo "Summary file ${OUTPUT_FILE} already exists, skipping ChatGPT processing"
     else

@@ -152,7 +152,10 @@ Uses the custom prompt file `~/.config/mnote/prompts/meeting` for summarization.
 
 4. **Output**:
    Summarized meeting notes are saved as `.txt` files in the same directory
-   as the input videos.
+   as the input videos. When using custom prompts, the prompt name is included
+   in the output filename (e.g., `video_meeting.txt` for the "meeting" prompt).
+   The default "summarize" prompt maintains the original filename format
+   (e.g., `video.txt`).
 
 ---
 
