@@ -156,10 +156,10 @@ mnote --language auto /path/to/videos   # Auto-detect language
    configuration (`TRANSCRIPTION_API_URL`). The script supports multiple languages
    and will use language-specific models when specified:
    - English (default): Uses faster-whisper-medium-en-cpu for optimal performance
-   - German: Uses primeline/whisper-tiny-german
-   - Spanish: Uses jonatasgrosman/whisper-large-v2-spanish
-   - French: Uses jonatasgrosman/whisper-large-v2-french
-   - Auto-detect: Uses openai/whisper-large-v3 for automatic language detection
+   - German: Uses primeline-whisper-tiny-german-1224
+   - Spanish: Uses jonatasgrosman-whisper-large-es-cv11
+   - French: Uses jonatasgrosman-whisper-large-fr-cv11
+   - Auto-detect: Uses openai-whisper-large-v3 for automatic language detection
 
 3. **Summarization**:
    Transcriptions are processed using the `chatgpt` CLI tool with the
@@ -226,27 +226,27 @@ Ensure the following tools are installed:
          resourceProfile: "cpu:1"
          minReplicas: 1
        # Language-specific models
-       primeline-whisper-tiny-german:
+       primeline-whisper-tiny-german-1224:
          enabled: true
          features: ["SpeechToText"]
          owner: "primeline"
-         url: "hf://primeline/whisper-tiny-german"
+         url: "hf://primeline/whisper-tiny-german-1224"
          engine: "Infinity"
          resourceProfile: "cpu:1"
          minReplicas: 1
-       jonatasgrosman-whisper-large-v2-spanish:
+       jonatasgrosman-whisper-large-es-cv11:
          enabled: true
          features: ["SpeechToText"]
          owner: "jonatasgrosman"
-         url: "hf://jonatasgrosman/whisper-large-v2-spanish"
+         url: "hf://jonatasgrosman/whisper-large-es-cv11"
          engine: "Infinity"
          resourceProfile: "cpu:2"
          minReplicas: 1
-       jonatasgrosman-whisper-large-v2-french:
+       jonatasgrosman-whisper-large-fr-cv11:
          enabled: true
          features: ["SpeechToText"]
          owner: "jonatasgrosman"
-         url: "hf://jonatasgrosman/whisper-large-v2-french"
+         url: "hf://jonatasgrosman/whisper-large-fr-cv11"
          engine: "Infinity"
          resourceProfile: "cpu:2"
          minReplicas: 1

@@ -143,13 +143,13 @@ select_whisper_model() {
     local lang="$1"
     case "$lang" in
         "de")
-            echo "primeline-whisper-tiny-german"
+            echo "primeline-whisper-tiny-german-1224"
             ;;
         "es")
-            echo "jonatasgrosman-whisper-large-v2-spanish"
+            echo "jonatasgrosman-whisper-large-es-cv11"
             ;;
         "fr")
-            echo "jonatasgrosman-whisper-large-v2-french"
+            echo "jonatasgrosman-whisper-large-fr-cv11"
             ;;
         "auto"|"en"|"")
             echo "faster-whisper-medium-en-cpu"
