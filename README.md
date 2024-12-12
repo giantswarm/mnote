@@ -137,18 +137,20 @@ Uses the custom prompt file `~/.config/mnote/prompts/meeting` for summarization.
 
 ## How It Works
 
-1. **Audio Extraction**:  
+1. **Audio Extraction**:
    The tool uses `ffmpeg` to extract audio from video files.
 
-2. **Transcription**:  
+2. **Transcription**:
    Audio files are sent to a Whisper-based transcription API specified in the
    configuration (`TRANSCRIPTION_API_URL`).
 
-3. **Summarization**:  
+3. **Summarization**:
    Transcriptions are processed using the `chatgpt` CLI tool with the
-   specified ChatGPT model and prompt.
+   specified ChatGPT model and prompt. If a summary file already exists
+   for a video, the ChatGPT processing step is skipped to avoid
+   unnecessary API calls.
 
-4. **Output**:  
+4. **Output**:
    Summarized meeting notes are saved as `.txt` files in the same directory
    as the input videos.
 
