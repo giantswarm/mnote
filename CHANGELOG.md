@@ -10,7 +10,7 @@
 - Comprehensive KubeAI installation documentation
 
 ### Changed
-- Updated default Whisper model to openai/whisper-large-v3 for better multilingual support
+- Restored faster-whisper-medium-en-cpu as default model for English transcription
 - Enhanced transcription API to support language-specific parameters
 
 ## [0.0.4] - 2024-12-12

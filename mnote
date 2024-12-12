@@ -22,7 +22,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 
 # Whisper Model for Transcription (use language-specific or large for autodetect)
-WHISPER_MODEL=openai/whisper-large-v3
+WHISPER_MODEL=faster-whisper-medium-en-cpu
 
 # ChatGPT Model for Summarization
 CHATGPT_MODEL=gpt-4o-2024-05-13
@@ -151,8 +151,11 @@ select_whisper_model() {
         "fr")
             echo "jonatasgrosman/whisper-large-v2-french"
             ;;
+        "auto"|"en"|"")
+            echo "faster-whisper-medium-en-cpu"
+            ;;
         *)
-            echo "$WHISPER_MODEL"
+            echo "openai/whisper-large-v3"
             ;;
     esac
 }
