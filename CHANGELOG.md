@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.6] - 2024-03-12
+
+### Added
+- Added force rebuild flag (--force) to regenerate transcription and summary files
+- Enhanced script output to display selected language and model information
+- Switched to .md file extension for better markdown compatibility
+
+### Changed
+- Refactored language-specific model configuration
+  - English now uses consistent configuration format (WHISPER_MODEL_EN)
+  - Maintained special faster-whisper-medium-en-cpu model for English
+  - Other languages use systran-faster-whisper-large-v3 universal model
+- Improved file organization by keeping all files in source directory
+- Updated configuration format to support language-specific models
+
+### Fixed
+- Fixed script name references (removed .sh suffix)
+- Improved help text to reflect new configuration options
+
 ## [0.0.5] - 2024-03-12
 
 ### Added

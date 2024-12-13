@@ -75,12 +75,11 @@ The `config` file contains the following default values:
 # Default language setting (auto, en, de, es, fr)
 DEFAULT_LANGUAGE=auto
 
-# Default models for language categories
-DEFAULT_ENGLISH_MODEL=faster-whisper-medium-en-cpu
-DEFAULT_UNIVERSAL_MODEL=systran-faster-whisper-large-v3
+# Language-specific model configuration
+# English model (optimized for English content)
+WHISPER_MODEL_EN=faster-whisper-medium-en-cpu
 
-# Language-specific model overrides (optional)
-# FORMAT: WHISPER_MODEL_<LANG>=<model_name>
+# Other language models (using universal model)
 WHISPER_MODEL_DE=systran-faster-whisper-large-v3
 WHISPER_MODEL_ES=systran-faster-whisper-large-v3
 WHISPER_MODEL_FR=systran-faster-whisper-large-v3
@@ -92,8 +91,13 @@ TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
 CHATGPT_MODEL=gpt-4o-2024-05-13
 ```
 
-You can edit these values to customize the transcription API, Whisper model,
-and ChatGPT model.
+You can edit these values to customize:
+- The transcription API endpoint
+- Default language for transcription (auto-detection by default)
+- Language-specific Whisper models
+  - English uses the medium model optimized for English content
+  - Other languages use the large universal model by default
+- ChatGPT model for summarization
 
 ### Prompts
 
@@ -164,10 +168,10 @@ mnote --language auto /path/to/videos   # Auto-detect language
 
 2. **Transcription**:
    Audio files are sent to a Whisper-based transcription API specified in the
-   configuration (`TRANSCRIPTION_API_URL`). The script selects the appropriate model:
-   - Uses `DEFAULT_ENGLISH_MODEL` (faster-whisper-medium-en-cpu) for English content
-   - Uses `DEFAULT_UNIVERSAL_MODEL` (systran-faster-whisper-large-v3) for other languages
-   - Supports language-specific model overrides via `WHISPER_MODEL_<LANG>` settings
+   configuration (`TRANSCRIPTION_API_URL`). The script uses language-specific models:
+   - English content uses the faster-whisper-medium-en-cpu model by default
+   - Other languages use the Systran/faster-whisper-large-v3 universal model
+   - Auto-detection (default) intelligently selects the appropriate model
    - Saves transcription results as `.json` files alongside the source video
 
 3. **Summarization**:
@@ -178,8 +182,7 @@ mnote --language auto /path/to/videos   # Auto-detect language
 
 4. **Output**:
    Summarized meeting notes are saved as `.md` files in the same directory
-   as the input videos, along with the extracted audio (`.mp3`) and transcription
-   (`.json`) files. When using custom prompts, the prompt name is included
+   as the input videos. When using custom prompts, the prompt name is included
    in the output filename (e.g., `video_meeting.md` for the "meeting" prompt).
    The default "summarize" prompt maintains the original filename format
    (e.g., `video.md`).
