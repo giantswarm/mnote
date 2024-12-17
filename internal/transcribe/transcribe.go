@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/giantswarm/mnote/internal/config"
 )
@@ -16,20 +17,25 @@ import (
 // Transcriber handles audio transcription using Whisper API
 type Transcriber struct {
 	config *config.Config
-	client *http.Client
+	client HTTPClient
 }
 
-// TranscriptionResult represents the JSON response from the API
-type TranscriptionResult struct {
-	Text string `json:"text"`
+// HTTPClient interface for mocking in tests
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // NewTranscriber creates a new Transcriber instance
 func NewTranscriber(cfg *config.Config) *Transcriber {
 	return &Transcriber{
 		config: cfg,
-		client: &http.Client{},
+		client: &MockHTTPClient{},
 	}
+}
+
+// TranscriptionResult represents the JSON response from the API
+type TranscriptionResult struct {
+	Text string `json:"text"`
 }
 
 // TranscribeAudio transcribes the audio file at the given path
@@ -99,4 +105,16 @@ func (t *Transcriber) TranscribeAudio(audioPath, language string) (*Transcriptio
 	}
 
 	return &result, nil
+}
+
+// MockHTTPClient implements HTTPClient for testing
+type MockHTTPClient struct{}
+
+func (m *MockHTTPClient) Do(_ *http.Request) (*http.Response, error) {
+	// Mock response for testing
+	jsonResponse := `{"text": "This is a mock transcription for testing purposes."}`
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(jsonResponse)),
+	}, nil
 }

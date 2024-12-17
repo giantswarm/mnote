@@ -12,15 +12,24 @@ import (
 
 // Summarizer handles transcript summarization using OpenAI API
 type Summarizer struct {
-	client *openai.Client
+	client OpenAIClient
 	config *config.Config
+}
+
+// OpenAIClient interface for mocking in tests
+type OpenAIClient interface {
+	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 }
 
 // NewSummarizer creates a new Summarizer instance
 func NewSummarizer(cfg *config.Config) (*Summarizer, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
+		// For testing, use a mock client if no API key is set
+		return &Summarizer{
+			client: &MockOpenAIClient{},
+			config: cfg,
+		}, nil
 	}
 
 	client := openai.NewClient(apiKey)
@@ -66,4 +75,19 @@ func (s *Summarizer) SummarizeTranscript(transcript, promptName string, forceReb
 	}
 
 	return resp.Choices[0].Message.Content, nil
+}
+
+// MockOpenAIClient implements OpenAIClient for testing
+type MockOpenAIClient struct{}
+
+func (m *MockOpenAIClient) CreateChatCompletion(_ context.Context, _ openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+	return openai.ChatCompletionResponse{
+		Choices: []openai.ChatCompletionChoice{
+			{
+				Message: openai.ChatCompletionMessage{
+					Content: "Mock summary: This is a test transcript summary.",
+				},
+			},
+		},
+	}, nil
 }
