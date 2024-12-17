@@ -3,6 +3,7 @@ module github.com/giantswarm/mnote
 go 1.20
 
 require (
+	github.com/sashabaranov/go-openai v1.36.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 )
