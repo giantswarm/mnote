@@ -1,7 +1,1 @@
-# System files
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.log
+test_files/
