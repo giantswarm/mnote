@@ -6,28 +6,30 @@ import (
 	"testing"
 
 	"github.com/giantswarm/mnote/internal/config"
-	"github.com/giantswarm/mnote/internal/summarize"
 	"github.com/giantswarm/mnote/internal/transcribe"
+	"github.com/giantswarm/mnote/internal/utils"
 )
 
+// mockTranscriber implements transcribe.Transcriber interface
 type mockTranscriber struct {
 	transcript string
 	err       error
 }
 
-func (m *mockTranscriber) TranscribeAudio(audioPath, model, language string) (string, error) {
+func (m *mockTranscriber) TranscribeAudio(audioPath, language string) (*transcribe.TranscriptionResult, error) {
 	if m.err != nil {
-		return "", m.err
+		return nil, m.err
 	}
-	return m.transcript, nil
+	return &transcribe.TranscriptionResult{Text: m.transcript}, nil
 }
 
+// mockSummarizer implements summarize.Summarizer interface
 type mockSummarizer struct {
 	summary string
 	err    error
 }
 
-func (m *mockSummarizer) SummarizeTranscript(transcript, promptName string) (string, error) {
+func (m *mockSummarizer) SummarizeTranscript(transcript, promptName string, forceRebuild bool) (string, error) {
 	if m.err != nil {
 		return "", m.err
 	}
@@ -44,13 +46,22 @@ func TestProcessVideo(t *testing.T) {
 		t.Fatalf("Failed to create test video file: %v", err)
 	}
 
+	// Create mock FFmpeg runner
+	mockFFmpeg := &utils.MockFFmpegRunner{}
+	utils.SetFFmpegRunner(mockFFmpeg)
+	defer utils.SetFFmpegRunner(&utils.DefaultFFmpegRunner{})
+
 	// Create mock dependencies
 	cfg := config.DefaultConfig()
 	transcriber := &mockTranscriber{transcript: "Test transcript"}
 	summarizer := &mockSummarizer{summary: "Test summary"}
 
 	// Create processor
-	processor := NewProcessor(cfg, transcriber, summarizer)
+	processor := &Processor{
+		config:      cfg,
+		transcriber: transcriber,
+		summarizer:  summarizer,
+	}
 
 	// Test processing
 	opts := Options{
@@ -62,6 +73,11 @@ func TestProcessVideo(t *testing.T) {
 	err := processor.ProcessVideo(videoPath, opts)
 	if err != nil {
 		t.Errorf("ProcessVideo() error = %v", err)
+	}
+
+	// Verify FFmpeg was called
+	if !mockFFmpeg.ExtractCalled {
+		t.Error("FFmpeg extraction was not called")
 	}
 
 	// Verify output files

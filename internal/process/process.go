@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/giantswarm/mnote/internal/config"
-	"github.com/giantswarm/mnote/internal/models"
 	"github.com/giantswarm/mnote/internal/summarize"
 	"github.com/giantswarm/mnote/internal/transcribe"
 	"github.com/giantswarm/mnote/internal/utils"
@@ -20,12 +19,12 @@ type Options struct {
 // Processor handles the complete video processing workflow
 type Processor struct {
 	config      *config.Config
-	transcriber *transcribe.Transcriber
-	summarizer  *summarize.Summarizer
+	transcriber transcribe.Transcriber
+	summarizer  summarize.Summarizer
 }
 
 // NewProcessor creates a new Processor instance
-func NewProcessor(cfg *config.Config, transcriber *transcribe.Transcriber, summarizer *summarize.Summarizer) *Processor {
+func NewProcessor(cfg *config.Config, transcriber transcribe.Transcriber, summarizer summarize.Summarizer) *Processor {
 	return &Processor{
 		config:      cfg,
 		transcriber: transcriber,
@@ -41,7 +40,7 @@ func (p *Processor) ProcessVideo(path string, opts Options) error {
 	}
 
 	// Extract audio
-	audioPath, err := utils.ExtractAudio(path)
+	audioPath, err := utils.ExtractAudio(path, opts.ForceRebuild)
 	if err != nil {
 		return fmt.Errorf("failed to extract audio: %w", err)
 	}
@@ -54,15 +53,8 @@ func (p *Processor) ProcessVideo(path string, opts Options) error {
 	if !opts.ForceRebuild && utils.FileExists(transcriptPath) {
 		fmt.Printf("Transcript file already exists: %s\n", transcriptPath)
 	} else {
-		// Get appropriate model for language
-		model, err := models.GetWhisperModel(opts.Language, p.config)
-		if err != nil {
-			return fmt.Errorf("failed to get Whisper model: %w", err)
-		}
-
 		// Perform transcription
-		fmt.Printf("Transcribing using model: %s (language: %s)\n", model, opts.Language)
-		result, err := p.transcriber.TranscribeAudio(audioPath, model)
+		result, err := p.transcriber.TranscribeAudio(audioPath, opts.Language)
 		if err != nil {
 			return fmt.Errorf("transcription failed: %w", err)
 		}

@@ -4,19 +4,31 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/giantswarm/mnote/internal/config"
 	"github.com/giantswarm/mnote/internal/process"
 	"github.com/giantswarm/mnote/internal/summarize"
 	"github.com/giantswarm/mnote/internal/transcribe"
+	"github.com/giantswarm/mnote/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+// Options holds the command-line options
 type Options struct {
 	VideoDir     string
 	PromptName   string
 	Language     string
 	ForceRebuild bool
+}
+
+// usageError represents an error that should trigger usage information
+type usageError struct {
+	msg string
+}
+
+func (e *usageError) Error() string {
+	return e.msg
 }
 
 func NewRootCmd() *cobra.Command {
@@ -74,7 +86,7 @@ func run(opts *Options) error {
 		"fr":   true,
 	}
 	if !validLangs[opts.Language] {
-		return fmt.Errorf("invalid language: %s", opts.Language)
+		return &usageError{fmt.Sprintf("invalid language: %s (supported: auto, en, de, es, fr)", opts.Language)}
 	}
 
 	// Validate prompt file
@@ -85,16 +97,18 @@ func run(opts *Options) error {
 	}
 
 	// Initialize components
-	transcriber := transcribe.NewTranscriber(cfg)
+	var transcriber transcribe.Transcriber
+	var summarizer summarize.Summarizer
 
-	summarizer, err := summarize.NewSummarizer(cfg)
+	transcriber = transcribe.NewTranscriber(cfg)
+	summarizer, err = summarize.NewSummarizer(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize summarizer: %w", err)
 	}
 
 	processor := process.NewProcessor(cfg, transcriber, summarizer)
 
-	// Process video file
+	// Process video files in directory
 	fmt.Printf("Processing videos in: %s\n", opts.VideoDir)
 	fmt.Printf("Using language: %s\n", opts.Language)
 	fmt.Printf("Using prompt: %s\n", opts.PromptName)
@@ -107,18 +121,53 @@ func run(opts *Options) error {
 		ForceRebuild: opts.ForceRebuild,
 	}
 
-	// Process the video file
-	if err := processor.ProcessVideo(opts.VideoDir, processOpts); err != nil {
-		return fmt.Errorf("failed to process video: %w", err)
+	// Process all video files in the directory
+	entries, err := os.ReadDir(opts.VideoDir)
+	if err != nil {
+		return fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	foundVideo := false
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		filePath := filepath.Join(opts.VideoDir, entry.Name())
+		if utils.IsVideoFile(filePath) {
+			foundVideo = true
+			if err := processor.ProcessVideo(filePath, processOpts); err != nil {
+				return fmt.Errorf("failed to process video: %w", err)
+			}
+		}
+	}
+
+	if !foundVideo {
+		return fmt.Errorf("no supported video files found in directory: %s", opts.VideoDir)
 	}
 
 	return nil
 }
 
+// isUsageError determines if an error is related to command usage
+func isUsageError(err error) bool {
+	if _, ok := err.(*usageError); ok {
+		return true
+	}
+	return strings.Contains(err.Error(), "unknown command") ||
+		strings.Contains(err.Error(), "unknown flag") ||
+		strings.Contains(err.Error(), "invalid argument") ||
+		strings.Contains(err.Error(), "accepts")
+}
+
 func main() {
 	cmd := NewRootCmd()
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		if isUsageError(err) {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			cmd.Usage()
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
 		os.Exit(1)
 	}
 }

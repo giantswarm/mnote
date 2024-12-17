@@ -14,8 +14,13 @@ import (
 	"github.com/giantswarm/mnote/internal/config"
 )
 
-// Transcriber handles audio transcription using Whisper API
-type Transcriber struct {
+// Transcriber interface defines the contract for audio transcription
+type Transcriber interface {
+	TranscribeAudio(audioPath, language string) (*TranscriptionResult, error)
+}
+
+// TranscriberImpl implements the Transcriber interface
+type TranscriberImpl struct {
 	config *config.Config
 	client HTTPClient
 }
@@ -26,8 +31,8 @@ type HTTPClient interface {
 }
 
 // NewTranscriber creates a new Transcriber instance
-func NewTranscriber(cfg *config.Config) *Transcriber {
-	return &Transcriber{
+func NewTranscriber(cfg *config.Config) Transcriber {
+	return &TranscriberImpl{
 		config: cfg,
 		client: &http.Client{},
 	}
@@ -39,7 +44,7 @@ type TranscriptionResult struct {
 }
 
 // TranscribeAudio transcribes the audio file at the given path
-func (t *Transcriber) TranscribeAudio(audioPath, language string) (*TranscriptionResult, error) {
+func (t *TranscriberImpl) TranscribeAudio(audioPath, language string) (*TranscriptionResult, error) {
 	// Open the audio file
 	file, err := os.Open(audioPath)
 	if err != nil {
@@ -60,12 +65,6 @@ func (t *Transcriber) TranscribeAudio(audioPath, language string) (*Transcriptio
 		return nil, fmt.Errorf("failed to copy file data: %w", err)
 	}
 
-	// Add model parameter
-	model := t.config.GetWhisperModel(language)
-	if err := writer.WriteField("model", model); err != nil {
-		return nil, fmt.Errorf("failed to add model field: %w", err)
-	}
-
 	// Add language parameter if not auto
 	if language != "auto" {
 		if err := writer.WriteField("language", language); err != nil {
@@ -73,13 +72,26 @@ func (t *Transcriber) TranscribeAudio(audioPath, language string) (*Transcriptio
 		}
 	}
 
+	// Add model parameter after language
+	model := t.config.GetWhisperModel(language)
+	fmt.Printf("Transcribing using model: %s (language: %s)\n", model, language)
+	if err := writer.WriteField("model", model); err != nil {
+		return nil, fmt.Errorf("failed to add model field: %w", err)
+	}
+
 	// Close multipart writer
 	if err := writer.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close writer: %w", err)
 	}
 
+	// Get API URL from environment or config
+	apiURL := os.Getenv("TRANSCRIPTION_API_URL")
+	if apiURL == "" {
+		apiURL = t.config.TranscriptionAPIURL
+	}
+
 	// Create request
-	req, err := http.NewRequest("POST", t.config.TranscriptionAPIURL, &buf)
+	req, err := http.NewRequest("POST", apiURL, &buf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

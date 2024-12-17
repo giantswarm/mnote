@@ -22,11 +22,13 @@ type WhisperModel struct {
 
 // GetWhisperModel returns the appropriate Whisper model for the given language
 func GetWhisperModel(lang string, cfg *config.Config) (string, error) {
-	model := cfg.GetWhisperModel(lang)
-	if model == "" {
-		return "", fmt.Errorf("no model found for language: %s", lang)
+	if !ValidateLanguage(lang) {
+		return "", fmt.Errorf("unsupported language: %s", lang)
 	}
-	return model, nil
+	if lang == "en" || lang == "auto" {
+		return DefaultEnglishModel, nil
+	}
+	return DefaultLargeModel, nil
 }
 
 // ValidateLanguage checks if the given language is supported

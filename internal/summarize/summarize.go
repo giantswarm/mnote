@@ -10,8 +10,13 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-// Summarizer handles transcript summarization using OpenAI API
-type Summarizer struct {
+// Summarizer interface defines the contract for transcript summarization
+type Summarizer interface {
+	SummarizeTranscript(transcript, promptName string, forceRebuild bool) (string, error)
+}
+
+// SummarizerImpl implements the Summarizer interface
+type SummarizerImpl struct {
 	client OpenAIClient
 	config *config.Config
 }
@@ -22,21 +27,26 @@ type OpenAIClient interface {
 }
 
 // NewSummarizer creates a new Summarizer instance
-func NewSummarizer(cfg *config.Config) (*Summarizer, error) {
+func NewSummarizer(cfg *config.Config) (Summarizer, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
 	}
 
+	// Use mock client in test environment
+	if os.Getenv("TEST_ENV") == "true" {
+		return &SummarizerImpl{client: &MockOpenAIClient{}, config: cfg}, nil
+	}
+
 	client := openai.NewClient(apiKey)
-	return &Summarizer{
+	return &SummarizerImpl{
 		client: client,
 		config: cfg,
 	}, nil
 }
 
 // SummarizeTranscript generates a summary of the transcript using the specified prompt
-func (s *Summarizer) SummarizeTranscript(transcript, promptName string, forceRebuild bool) (string, error) {
+func (s *SummarizerImpl) SummarizeTranscript(transcript, promptName string, forceRebuild bool) (string, error) {
 	// Read prompt file
 	promptDir := filepath.Join(os.Getenv("HOME"), ".config", "mnote", "prompts")
 	promptFile := filepath.Join(promptDir, promptName)
