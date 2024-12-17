@@ -85,10 +85,7 @@ func run(opts *Options) error {
 	}
 
 	// Initialize components
-	transcriber, err := transcribe.NewTranscriber(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to initialize transcriber: %w", err)
-	}
+	transcriber := transcribe.NewTranscriber(cfg)
 
 	summarizer, err := summarize.NewSummarizer(cfg)
 	if err != nil {
