@@ -1,77 +1,58 @@
 # mnote
 
-**mnote** is a CLI tool for summarizing meetings using AI. It transcribes audio from video files, processes the transcription using a Whisper-based API, and generates detailed summaries with ChatGPT.
+mnote is a command-line tool for transcribing and summarizing video files using Whisper and ChatGPT. Written in Go, it provides robust audio processing, transcription, and AI-powered summarization capabilities.
 
 ## Features
 
-- Extracts audio from video files.
-- Transcribes audio using a configurable Whisper-based transcription service.
-- Summarizes transcripts using ChatGPT with customizable prompts.
-- Configurable transcription API, Whisper model, and ChatGPT model.
+- Video to text transcription using configurable Whisper models
+- Text summarization using ChatGPT with customizable prompts
+- Support for multiple languages (English, German, Spanish, French, and auto-detection)
+- Language-specific model selection
+- Force rebuild option for regenerating transcripts and summaries
+- Supports various video formats (.mp4, .mkv, .avi, .mov)
 
----
+## Prerequisites
+
+- Go 1.21 or later
+- FFmpeg (for audio extraction)
+- OpenAI API key
+- KubeAI installation for transcription service
 
 ## Installation
 
-### Prerequisites
-Ensure the following tools are installed on your system and available in the `PATH`:
-- `ffmpeg` (for audio extraction)
-- `curl` (for API requests)
-- `jq` (for processing JSON output)
-- `chatgpt` ([chatgpt-cli](https://github.com/kardolus/chatgpt-cli) for summarization)
+### From Source
 
-### Environment Variable
-
-Set your OpenAI API key for the `chatgpt` tool:
-
+1. Clone the repository:
 ```bash
-export OPENAI_API_KEY="your_openai_api_key"
-```
-
-### Clone and Setup
-
-Clone the repository:
-
-```bash
-git clone https://github.com/teemow/mnote.git
+git clone https://github.com/giantswarm/mnote.git
 cd mnote
 ```
 
-:> [!WARNING]
->
-Make the script executable:
-
+2. Install Go dependencies:
 ```bash
-chmod +x mnote
+go mod download
 ```
 
-(Optional) Add it to your `PATH`:
-
+3. Build the binary:
 ```bash
-sudo mv mnote /usr/local/bin/mnote
+go build -o mnote ./cmd/mnote
 ```
 
----
-
-## Configuration
-
-### Default Configuration
-
-Upon first run, **mnote** will create a configuration directory at
-`~/.config/mnote` with the following structure:
-
-```
-~/.config/mnote/
-├── config
-└── prompts/
-    └── summarize
+4. Move the binary to your PATH:
+```bash
+sudo mv mnote /usr/local/bin/
 ```
 
-### Configuration File (`~/.config/mnote/config`)
+### Configuration
 
-The `config` file contains the following default values:
+1. Create configuration directory:
+```bash
+mkdir -p ~/.config/mnote/prompts
+```
 
-```ini
+2. Create default configuration file:
+```bash
+cat > ~/.config/mnote/config << EOF
 # Default language setting (auto, en, de, es, fr)
 DEFAULT_LANGUAGE=auto
 
@@ -84,34 +65,23 @@ WHISPER_MODEL_DE=systran-faster-whisper-large-v3
 WHISPER_MODEL_ES=systran-faster-whisper-large-v3
 WHISPER_MODEL_FR=systran-faster-whisper-large-v3
 
-# Transcription API URL
-TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
+# Transcription API URL (update with your KubeAI endpoint)
+TRANSCRIPTION_API_URL=http://localhost:8000/v1/audio/transcriptions
+
+# OpenAI API Key
+OPENAI_API_KEY=your_openai_api_key
 
 # ChatGPT Model for Summarization
-CHATGPT_MODEL=gpt-4o-2024-05-13
+CHATGPT_MODEL=gpt-4
+EOF
 ```
 
-You can edit these values to customize:
-- The transcription API endpoint
-- Default language for transcription (auto-detection by default)
-- Language-specific Whisper models
-  - English uses the medium model optimized for English content
-  - Other languages use the large universal model by default
-- ChatGPT model for summarization
-
-### Prompts
-
-Prompts are stored in `~/.config/mnote/prompts`. The default prompt
-(`summarize`) is created automatically:
-
-```plaintext
-Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented. If specific names are included in the transcript, use them to accurately attribute the statements. Also document all important feedback and planned actions. Pay attention to details on time frames, responsibilities, open questions and any next steps. Conclude the summary with a brief overview of the key findings and next steps.
+3. Create default summary prompt:
+```bash
+cat > ~/.config/mnote/prompts/summarize << EOF
+Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented.
+EOF
 ```
-
-To add a custom prompt, create a new file in the `prompts` Directory
-(e.g., `meeting`) and reference it using the `--prompt` option.
-
----
 
 ## Usage
 
@@ -158,8 +128,6 @@ mnote --language fr /path/to/videos     # French
 mnote --language auto /path/to/videos   # Auto-detect language
 ```
 
----
-
 ## How It Works
 
 1. **Audio Extraction**:
@@ -187,16 +155,12 @@ mnote --language auto /path/to/videos   # Auto-detect language
    The default "summarize" prompt maintains the original filename format
    (e.g., `video.md`).
 
----
-
 ## Supported File Formats
 
 - `.mp4`
 - `.mkv`
 - `.avi`
 - `.mov`
-
----
 
 ## Dependencies
 
@@ -206,8 +170,6 @@ Ensure the following tools are installed:
 - `curl`: [Installation Guide](https://curl.se/)
 - `jq`: [Installation Guide](https://stedolan.github.io/jq/download/)
 - `chatgpt`: Install from [chatgpt-cli](https://github.com/kardolus/chatgpt-cli)
-
----
 
 ## Notes
 
@@ -262,13 +224,9 @@ Ensure the following tools are installed:
 - **OpenAI API**: You must have an OpenAI API key for the `chatgpt` CLI tool.
   Register at [OpenAI](https://platform.openai.com/).
 
----
-
 ## Author
 
 Timo Derstappen
-
----
 
 ## License
 

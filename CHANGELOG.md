@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.1.0] - 2024-01-17
+
+### Added
+- Complete rewrite in Go with improved architecture
+- Modular package structure:
+  - config: Configuration management
+  - transcribe: Audio transcription with language support
+  - summarize: Text summarization with OpenAI integration
+  - models: Whisper model management
+  - utils: File and media handling utilities
+  - process: Complete workflow management
+- Comprehensive test suite with mock clients
+- Type-safe configuration management
+- Improved error handling and logging
+- Better dependency management with go modules
+
+### Changed
+- Moved from Bash script to Go binary
+- Improved file organization (removed temp directory usage)
+- Changed output files from .txt to .md
+- Restructured configuration format
+- Enhanced language model configuration
+- Added force rebuild option
+
+### Fixed
+- Improved error handling for API calls
+- Better file path handling
+- More robust configuration loading
+- Enhanced input validation
+
 ## [0.0.6] - 2024-03-12
 
 ### Added
