@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 
 	"github.com/giantswarm/mnote/internal/config"
+	"github.com/giantswarm/mnote/internal/process"
+	"github.com/giantswarm/mnote/internal/summarize"
+	"github.com/giantswarm/mnote/internal/transcribe"
 	"github.com/spf13/cobra"
 )
 
@@ -81,11 +84,36 @@ func run(opts *Options) error {
 		return fmt.Errorf("prompt file does not exist: %s", promptFile)
 	}
 
-	// TODO: Implement video processing logic
+	// Initialize components
+	transcriber, err := transcribe.NewTranscriber(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to initialize transcriber: %w", err)
+	}
+
+	summarizer, err := summarize.NewSummarizer(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to initialize summarizer: %w", err)
+	}
+
+	processor := process.NewProcessor(cfg, transcriber, summarizer)
+
+	// Process video file
 	fmt.Printf("Processing videos in: %s\n", opts.VideoDir)
 	fmt.Printf("Using language: %s\n", opts.Language)
 	fmt.Printf("Using prompt: %s\n", opts.PromptName)
 	fmt.Printf("Force rebuild: %v\n", opts.ForceRebuild)
+
+	// Create process options
+	processOpts := process.Options{
+		Language:     opts.Language,
+		PromptName:   opts.PromptName,
+		ForceRebuild: opts.ForceRebuild,
+	}
+
+	// Process the video file
+	if err := processor.ProcessVideo(opts.VideoDir, processOpts); err != nil {
+		return fmt.Errorf("failed to process video: %w", err)
+	}
 
 	return nil
 }
