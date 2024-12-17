@@ -103,12 +103,12 @@ CHATGPT_MODEL=gpt-4o`
 // GetWhisperModel returns the appropriate Whisper model for the given language
 func (c *Config) GetWhisperModel(lang string) string {
 	if lang == "auto" {
-		// For auto-detection, use the English model as default
-		return c.WhisperModels["en"]
+		// For auto-detection, use the large model
+		return c.WhisperModels["de"]
 	}
 	if model, ok := c.WhisperModels[lang]; ok {
 		return model
 	}
-	// Fallback to English model if language not supported
-	return c.WhisperModels["en"]
+	// Fallback to large model if language not supported
+	return c.WhisperModels["de"]
 }

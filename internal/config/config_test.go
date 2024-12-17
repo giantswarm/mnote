@@ -38,7 +38,7 @@ func TestGetWhisperModel(t *testing.T) {
 		{
 			name:     "auto detection",
 			language: "auto",
-			want:     "faster-whisper-medium-en-cpu",
+			want:     "systran-faster-whisper-large-v3", // Updated to use large model
 		},
 		{
 			name:     "english model",
@@ -53,7 +53,7 @@ func TestGetWhisperModel(t *testing.T) {
 		{
 			name:     "unsupported language",
 			language: "invalid",
-			want:     "faster-whisper-medium-en-cpu", // fallback to English
+			want:     "systran-faster-whisper-large-v3", // Updated to use large model as fallback
 		},
 	}
 

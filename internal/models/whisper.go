@@ -25,7 +25,10 @@ func GetWhisperModel(lang string, cfg *config.Config) (string, error) {
 	if !ValidateLanguage(lang) {
 		return "", fmt.Errorf("unsupported language: %s", lang)
 	}
-	if lang == "en" || lang == "auto" {
+	if lang == "auto" {
+		return DefaultLargeModel, nil
+	}
+	if lang == "en" {
 		return DefaultEnglishModel, nil
 	}
 	return DefaultLargeModel, nil

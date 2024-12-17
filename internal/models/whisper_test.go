@@ -28,7 +28,7 @@ func TestGetWhisperModel(t *testing.T) {
 		{
 			name: "auto detection",
 			lang: "auto",
-			want: DefaultEnglishModel,
+			want: DefaultLargeModel, // Updated to use large model for auto detection
 		},
 	}
 
