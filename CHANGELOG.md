@@ -29,6 +29,11 @@
 - Better file path handling
 - More robust configuration loading
 - Enhanced input validation
+- Fixed transcription using mock client instead of real API
+- Fixed config file not being created with default values
+- Fixed ChatGPT model configuration to use gpt-4o
+- Fixed file extension for transcripts to use .md instead of .json
+- Improved README with detailed configuration documentation
 
 ## [0.0.6] - 2024-03-12
 

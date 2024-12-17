@@ -25,11 +25,7 @@ type OpenAIClient interface {
 func NewSummarizer(cfg *config.Config) (*Summarizer, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		// For testing, use a mock client if no API key is set
-		return &Summarizer{
-			client: &MockOpenAIClient{},
-			config: cfg,
-		}, nil
+		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
 	}
 
 	client := openai.NewClient(apiKey)

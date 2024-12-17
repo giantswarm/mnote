@@ -45,42 +45,30 @@ sudo mv mnote /usr/local/bin/
 
 ### Configuration
 
-1. Create configuration directory:
-```bash
-mkdir -p ~/.config/mnote/prompts
-```
+The configuration file is automatically created at `~/.config/mnote/config` with default values on first run. You can also manually create or modify it:
 
-2. Create default configuration file:
 ```bash
-cat > ~/.config/mnote/config << EOF
-# Default language setting (auto, en, de, es, fr)
+# Default configuration file (~/.config/mnote/config)
+TRANSCRIPTION_API_URL=http://localhost:8000/v1/audio/transcriptions
 DEFAULT_LANGUAGE=auto
 
 # Language-specific model configuration
-# English model (optimized for English content)
-WHISPER_MODEL_EN=faster-whisper-medium-en-cpu
+WHISPER_MODEL_EN=faster-whisper-medium-en-cpu    # Optimized for English
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3 # Universal model for German
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3 # Universal model for Spanish
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3 # Universal model for French
 
-# Other language models (using universal model)
-WHISPER_MODEL_DE=systran-faster-whisper-large-v3
-WHISPER_MODEL_ES=systran-faster-whisper-large-v3
-WHISPER_MODEL_FR=systran-faster-whisper-large-v3
-
-# Transcription API URL (update with your KubeAI endpoint)
-TRANSCRIPTION_API_URL=http://localhost:8000/v1/audio/transcriptions
-
-# OpenAI API Key
-OPENAI_API_KEY=your_openai_api_key
-
-# ChatGPT Model for Summarization
-CHATGPT_MODEL=gpt-4
-EOF
+# ChatGPT configuration
+CHATGPT_MODEL=gpt-4o
 ```
 
-3. Create default summary prompt:
+### Prompts
+
+Create custom prompts in `~/.config/mnote/prompts/`. The default summarization prompt is automatically created at `~/.config/mnote/prompts/summarize`:
+
 ```bash
-cat > ~/.config/mnote/prompts/summarize << EOF
+# Default summary prompt
 Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented.
-EOF
 ```
 
 ## Usage
@@ -138,14 +126,14 @@ mnote --language auto /path/to/videos   # Auto-detect language
    Audio files are sent to a Whisper-based transcription API specified in the
    configuration (`TRANSCRIPTION_API_URL`). The script uses language-specific models:
    - English content uses the faster-whisper-medium-en-cpu model by default
-   - Other languages use the Systran/faster-whisper-large-v3 universal model
+   - Other languages use the Systran-faster-whisper-large-v3 universal model
    - Auto-detection (default) intelligently selects the appropriate model
-   - Saves transcription results as `.json` files alongside the source video
+   - Transcriptions are saved as `.md` files alongside the source video
 
 3. **Summarization**:
-   Transcriptions are processed using the `chatgpt` CLI tool with the
-   specified ChatGPT model and prompt. If a summary file already exists
-   for a video, the ChatGPT processing step is skipped to avoid
+   Transcriptions are processed using the OpenAI API with the configured
+   ChatGPT model (gpt-4o by default) and specified prompt. If a summary file already exists
+   for a video and --force is not used, the summarization step is skipped to avoid
    unnecessary API calls.
 
 4. **Output**:

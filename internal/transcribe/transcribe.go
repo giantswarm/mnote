@@ -29,7 +29,7 @@ type HTTPClient interface {
 func NewTranscriber(cfg *config.Config) *Transcriber {
 	return &Transcriber{
 		config: cfg,
-		client: &MockHTTPClient{},
+		client: &http.Client{},
 	}
 }
 

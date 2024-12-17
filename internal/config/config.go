@@ -19,6 +19,7 @@ type Config struct {
 // DefaultConfig returns a Config with default values
 func DefaultConfig() *Config {
 	return &Config{
+		TranscriptionAPIURL: "https://api.kubeai.org/v1/audio/transcriptions",
 		DefaultLanguage: "auto",
 		WhisperModels: map[string]string{
 			"en": "faster-whisper-medium-en-cpu",
@@ -26,7 +27,7 @@ func DefaultConfig() *Config {
 			"es": "systran-faster-whisper-large-v3",
 			"fr": "systran-faster-whisper-large-v3",
 		},
-		ChatGPTModel: "gpt-4",
+		ChatGPTModel: "gpt-4o",
 	}
 }
 
@@ -41,18 +42,41 @@ func LoadConfig() (*Config, error) {
 
 	// Config file path
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "mnote")
+	promptsDir := filepath.Join(configDir, "prompts")
 	v.AddConfigPath(configDir)
+
+	// Create config directory and prompts directory
+	if err := os.MkdirAll(promptsDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create config directories: %w", err)
+	}
+
+	// Create default prompt file if it doesn't exist
+	defaultPromptFile := filepath.Join(promptsDir, "summarize")
+	if _, err := os.Stat(defaultPromptFile); os.IsNotExist(err) {
+		defaultPrompt := `Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented.`
+		if err := os.WriteFile(defaultPromptFile, []byte(defaultPrompt), 0644); err != nil {
+			return nil, fmt.Errorf("failed to create default prompt file: %w", err)
+		}
+	}
 
 	// Read config file
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Create default config file if it doesn't exist
-			if err := os.MkdirAll(configDir, 0755); err != nil {
-				return nil, fmt.Errorf("failed to create config directory: %w", err)
-			}
+			// Create default config file
+			defaultConfig := `TRANSCRIPTION_API_URL=https://api.kubeai.org/v1/audio/transcriptions
+DEFAULT_LANGUAGE=auto
+WHISPER_MODEL_EN=faster-whisper-medium-en-cpu
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3
+CHATGPT_MODEL=gpt-4o`
 			configFile := filepath.Join(configDir, "config")
-			if err := os.WriteFile(configFile, []byte(""), 0644); err != nil {
+			if err := os.WriteFile(configFile, []byte(defaultConfig), 0644); err != nil {
 				return nil, fmt.Errorf("failed to create config file: %w", err)
+			}
+			// Reload config after creating file
+			if err := v.ReadInConfig(); err != nil {
+				return nil, fmt.Errorf("failed to read new config file: %w", err)
 			}
 		} else {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
