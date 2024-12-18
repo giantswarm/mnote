@@ -9,6 +9,7 @@ import (
 
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 	whisperlib "github.com/ggerganov/whisper.cpp/bindings/go/pkg/whisper"
+	"github.com/giantswarm/mnote/internal/config"
 	"github.com/giantswarm/mnote/internal/interfaces"
 )
 
@@ -17,22 +18,15 @@ type LocalWhisper struct {
 	modelPath string
 	model     whisperlib.Model
 	context   whisperlib.Context
+	config    config.ModelConfig
 }
 
-// New creates a new LocalWhisper instance with the specified model path
-func New(modelPath string) (*LocalWhisper, error) {
-	// Expand home directory if needed
-	if strings.HasPrefix(modelPath, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get home directory: %w", err)
-		}
-		modelPath = filepath.Join(home, modelPath[2:])
-	}
-
-	// Check if model file exists
-	if _, err := os.Stat(modelPath); err != nil {
-		return nil, fmt.Errorf("model file not found at %s: %w", modelPath, err)
+// NewLocalWhisper creates a new LocalWhisper instance with the specified model configuration
+func NewLocalWhisper(cfg config.ModelConfig) (*LocalWhisper, error) {
+	// Download or get existing model
+	modelPath, err := DownloadModel(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get model: %w", err)
 	}
 
 	// Load the whisper model
@@ -52,7 +46,15 @@ func New(modelPath string) (*LocalWhisper, error) {
 		modelPath: modelPath,
 		model:     model,
 		context:   context,
+		config:    cfg,
 	}, nil
+}
+
+// New is deprecated, use NewLocalWhisper instead
+func New(modelPath string) (*LocalWhisper, error) {
+	return NewLocalWhisper(config.ModelConfig{
+		LocalPath: modelPath,
+	})
 }
 
 // Close releases resources associated with the model
@@ -103,7 +105,7 @@ func (w *LocalWhisper) TranscribeAudio(audioPath string, lang string) (string, e
 	// Set language if specified
 	if lang != "auto" {
 		if err := w.context.SetLanguage(lang); err != nil {
-			return "", fmt.Errorf("failed to set language: %w", err)
+			return "", fmt.Errorf("failed to set language %s: %w", lang, err)
 		}
 	}
 

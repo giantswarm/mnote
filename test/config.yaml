@@ -1,4 +1,24 @@
-TRANSCRIPTION_BACKEND: "local"
-LOCAL_MODEL_SIZE: "tiny"
-LOCAL_MODEL_PATH: "${HOME}/.local/share/mnote/models/ggml-tiny.bin"
-DEFAULT_LANGUAGE: "auto"
+transcription_backend: local
+default_language: auto
+chatgpt_model: gpt-4o
+
+catalog:
+  faster-whisper-medium-en-cpu:
+    enabled: true
+    features: ["SpeechToText"]
+    owner: systran
+    url: "hf://systran/faster-whisper-medium-en"
+    engine: FasterWhisper
+    localPath: "~/.config/mnote/models/faster-whisper-medium-en.bin"
+    resourceProfile: cpu:1
+    minReplicas: 1
+
+  systran-faster-whisper-large-v3:
+    enabled: true
+    features: ["SpeechToText"]
+    owner: systran
+    url: "hf://systran/faster-whisper-large-v3"
+    engine: FasterWhisper
+    localPath: "~/.config/mnote/models/faster-whisper-large-v3.bin"
+    resourceProfile: cpu:1
+    minReplicas: 1

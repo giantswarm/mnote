@@ -78,7 +78,7 @@ CHATGPT_MODEL=gpt-4o
 
 ### Local Whisper Models
 
-When using the local transcription backend (`TRANSCRIPTION_BACKEND=local`), you need to download and configure a Whisper model. The models have different sizes with varying accuracy and resource requirements:
+When using the local transcription backend (`TRANSCRIPTION_BACKEND=local`), you need to configure a Whisper model. Models are automatically downloaded from HuggingFace when first used. The models have different sizes with varying accuracy and resource requirements:
 
 | Model  | Disk   | Memory  | Accuracy | Use Case |
 |--------|--------|---------|----------|----------|
@@ -99,23 +99,17 @@ To set up local transcription:
    brew install cmake pkg-config
    ```
 
-2. Download a Whisper model:
-   ```bash
-   # Create models directory
-   mkdir -p ~/.config/mnote/models
-   cd ~/.config/mnote/models
-
-   # Download your chosen model (example: base model)
-   wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
-   ```
-
-3. Configure mnote:
+2. Configure mnote:
    ```bash
    # Update ~/.config/mnote/config
    TRANSCRIPTION_BACKEND=local
    LOCAL_MODEL_PATH=~/.config/mnote/models/ggml-base.bin
-   LOCAL_MODEL_SIZE=base
+   LOCAL_MODEL_SIZE=base  # Change to tiny, small, medium, or large as needed
    ```
+
+Models are downloaded automatically to the specified `LOCAL_MODEL_PATH` when first used.
+The default configuration uses the base model for a good balance of accuracy and resource
+usage. You can change the model size by updating `LOCAL_MODEL_SIZE`.
 
 ### Prompts
 
@@ -247,22 +241,58 @@ Ensure the following tools are installed:
        faster-whisper-medium-en-cpu:
          enabled: true
          features: ["SpeechToText"]
-         owner: "Systran"
-         url: "hf://Systran/faster-whisper-medium-en"
-         engine: "FasterWhisper"
-         resourceProfile: "cpu:1"
+         owner: systran
+         url: "hf://systran/faster-whisper-medium-en"
+         engine: FasterWhisper
+         resourceProfile: cpu:1
          minReplicas: 1
 
        # Universal model for multilingual support and auto-detection
        systran-faster-whisper-large-v3:
          enabled: true
          features: ["SpeechToText"]
-         owner: "Systran"
-         url: "hf://Systran/faster-whisper-large-v3"
-         engine: "FasterWhisper"
-         resourceProfile: "cpu:2"
+         owner: systran
+         url: "hf://systran/faster-whisper-large-v3"
+         engine: FasterWhisper
+         resourceProfile: cpu:2
+         minReplicas: 1
+
+       # Language-specific models (optional)
+       systran-faster-whisper-large-v3-de:
+         enabled: true
+         features: ["SpeechToText"]
+         owner: systran
+         url: "hf://systran/faster-whisper-large-v3"
+         engine: FasterWhisper
+         language: de  # German
+         resourceProfile: cpu:2
+         minReplicas: 1
+
+       systran-faster-whisper-large-v3-fr:
+         enabled: true
+         features: ["SpeechToText"]
+         owner: systran
+         url: "hf://systran/faster-whisper-large-v3"
+         engine: FasterWhisper
+         language: fr  # French
+         resourceProfile: cpu:2
+         minReplicas: 1
+
+       systran-faster-whisper-large-v3-es:
+         enabled: true
+         features: ["SpeechToText"]
+         owner: systran
+         url: "hf://systran/faster-whisper-large-v3"
+         engine: FasterWhisper
+         language: es  # Spanish
+         resourceProfile: cpu:2
          minReplicas: 1
      ```
+
+     Note: Models are automatically downloaded from HuggingFace when first used. The
+     `url` field uses the format `hf://{owner}/{model-name}` to specify the model
+     source. Language-specific models are optional; the universal model will be used
+     for auto-detection and languages without specific models.
 
   4. Install the models (version 0.9.0):
      ```bash

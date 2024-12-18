@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Automatic model downloads from HuggingFace for both local and KubeAI backends
+- KubeAI-compatible catalog-based configuration structure for model management
+- Support for both local and KubeAI transcription backends with consistent configuration
+- Language-specific model configuration with auto-detection support
+
+### Changed
+- Simplified model setup by removing manual download requirements
+- Enhanced model configuration with unified catalog format
+- Improved language handling with automatic model selection
+
 ## [0.1.0] - 2024-01-17
 
 ### Added
