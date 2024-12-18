@@ -3,7 +3,6 @@ package whisper
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -34,34 +33,6 @@ func GetModelPath(name string) (string, error) {
 	}
 
 	return filepath.Join(modelsDir, fmt.Sprintf("%s.bin", name)), nil
-}
-
-// DownloadModel downloads a model from HuggingFace
-func DownloadModel(info ModelInfo) error {
-	modelPath, err := GetModelPath(info.Name)
-	if err != nil {
-		return fmt.Errorf("failed to get model path: %w", err)
-	}
-
-	// Check if model already exists
-	if _, err := os.Stat(modelPath); err == nil {
-		return nil // Model already exists
-	}
-
-	// Create temporary directory for download
-	tmpDir, err := os.MkdirTemp("", "whisper-model-*")
-	if err != nil {
-		return fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Download model using curl
-	downloadCmd := fmt.Sprintf("curl -L %s -o %s", info.URL, modelPath)
-	if err := exec.Command("sh", "-c", downloadCmd).Run(); err != nil {
-		return fmt.Errorf("failed to download model: %w", err)
-	}
-
-	return nil
 }
 
 // GetDefaultModel returns the default model info based on language
