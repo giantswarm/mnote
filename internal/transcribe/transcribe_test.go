@@ -11,9 +11,57 @@ import (
 	"github.com/giantswarm/mnote/internal/config"
 )
 
-func TestTranscribeAudio(t *testing.T) {
+func TestNewTranscriber(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *config.Config
+		wantErr bool
+	}{
+		{
+			name: "kubeai backend",
+			cfg: &config.Config{
+				TranscriptionBackend: "kubeai",
+				TranscriptionAPIURL: "http://example.com",
+			},
+			wantErr: false,
+		},
+		{
+			name: "local backend without model",
+			cfg: &config.Config{
+				TranscriptionBackend: "local",
+				LocalModelPath:      "/nonexistent/model.bin",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid backend",
+			cfg: &config.Config{
+				TranscriptionBackend: "invalid",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transcriber, err := NewTranscriber(tt.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewTranscriber() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil && transcriber == nil {
+				t.Error("NewTranscriber() returned nil transcriber without error")
+			}
+		})
+	}
+}
+
+func TestKubeAITranscribeAudio(t *testing.T) {
 	// Create test config
-	cfg := config.DefaultConfig()
+	cfg := &config.Config{
+		TranscriptionBackend: "kubeai",
+		DefaultLanguage:     "en",
+	}
 
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +99,10 @@ func TestTranscribeAudio(t *testing.T) {
 	cfg.TranscriptionAPIURL = server.URL
 
 	// Create transcriber
-	transcriber := NewTranscriber(cfg)
+	transcriber, err := NewTranscriber(cfg)
+	if err != nil {
+		t.Fatalf("failed to create transcriber: %v", err)
+	}
 
 	// Create temporary audio file
 	tmpDir := t.TempDir()
@@ -84,13 +135,13 @@ func TestTranscribeAudio(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := transcriber.TranscribeAudio(audioPath, tt.language)
+			text, err := transcriber.TranscribeAudio(audioPath, tt.language)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TranscribeAudio() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr && result.Text != "Test transcription" {
-				t.Errorf("TranscribeAudio() = %v, want %v", result.Text, "Test transcription")
+			if !tt.wantErr && text != "Test transcription" {
+				t.Errorf("TranscribeAudio() = %v, want %v", text, "Test transcription")
 			}
 		})
 	}

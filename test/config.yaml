@@ -1,0 +1,4 @@
+TRANSCRIPTION_BACKEND: "local"
+LOCAL_MODEL_SIZE: "tiny"
+LOCAL_MODEL_PATH: "${HOME}/.local/share/mnote/models/ggml-tiny.bin"
+DEFAULT_LANGUAGE: "auto"

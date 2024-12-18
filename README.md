@@ -16,7 +16,13 @@ mnote is a command-line tool for transcribing and summarizing video files using 
 - Go 1.21 or later
 - FFmpeg (for audio extraction)
 - OpenAI API key
-- KubeAI installation for transcription service
+- Build dependencies for local transcription:
+  - gcc
+  - cmake
+  - pkg-config
+- One of:
+  - KubeAI installation for remote transcription service
+  - Local Whisper model for local transcription
 
 ## Installation
 
@@ -49,10 +55,18 @@ The configuration file is automatically created at `~/.config/mnote/config` with
 
 ```bash
 # Default configuration file (~/.config/mnote/config)
-TRANSCRIPTION_API_URL=http://localhost:8000/v1/audio/transcriptions
+# Transcription backend configuration
+TRANSCRIPTION_BACKEND=kubeai  # Use 'kubeai' or 'local'
+TRANSCRIPTION_API_URL=http://localhost:8000/v1/audio/transcriptions  # Only for kubeai backend
+
+# Local Whisper configuration (only for local backend)
+LOCAL_MODEL_PATH=~/.config/mnote/models/ggml-base.en.bin
+LOCAL_MODEL_SIZE=base  # tiny, base, small, medium, or large
+
+# Language configuration
 DEFAULT_LANGUAGE=auto
 
-# Language-specific model configuration
+# Language-specific model configuration (only for kubeai backend)
 WHISPER_MODEL_EN=faster-whisper-medium-en-cpu    # Optimized for English
 WHISPER_MODEL_DE=systran-faster-whisper-large-v3 # Universal model for German
 WHISPER_MODEL_ES=systran-faster-whisper-large-v3 # Universal model for Spanish
@@ -61,6 +75,47 @@ WHISPER_MODEL_FR=systran-faster-whisper-large-v3 # Universal model for French
 # ChatGPT configuration
 CHATGPT_MODEL=gpt-4o
 ```
+
+### Local Whisper Models
+
+When using the local transcription backend (`TRANSCRIPTION_BACKEND=local`), you need to download and configure a Whisper model. The models have different sizes with varying accuracy and resource requirements:
+
+| Model  | Disk   | Memory  | Accuracy | Use Case |
+|--------|--------|---------|----------|----------|
+| tiny   | 75 MB  | ~273 MB | Basic    | Quick transcriptions, low resource usage |
+| base   | 142 MB | ~388 MB | Good     | General purpose, balanced performance |
+| small  | 466 MB | ~852 MB | Better   | Improved accuracy, moderate resources |
+| medium | 1.5 GB | ~2.1 GB | High     | High accuracy, higher resource usage |
+| large  | 2.9 GB | ~3.9 GB | Best     | Best accuracy, significant resources |
+
+To set up local transcription:
+
+1. Install build dependencies:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install gcc cmake pkg-config
+
+   # macOS
+   brew install cmake pkg-config
+   ```
+
+2. Download a Whisper model:
+   ```bash
+   # Create models directory
+   mkdir -p ~/.config/mnote/models
+   cd ~/.config/mnote/models
+
+   # Download your chosen model (example: base model)
+   wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
+   ```
+
+3. Configure mnote:
+   ```bash
+   # Update ~/.config/mnote/config
+   TRANSCRIPTION_BACKEND=local
+   LOCAL_MODEL_PATH=~/.config/mnote/models/ggml-base.bin
+   LOCAL_MODEL_SIZE=base
+   ```
 
 ### Prompts
 
@@ -123,12 +178,22 @@ mnote --language auto /path/to/videos   # Auto-detect language
    in the same directory as the source video.
 
 2. **Transcription**:
-   Audio files are sent to a Whisper-based transcription API specified in the
-   configuration (`TRANSCRIPTION_API_URL`). The script uses language-specific models:
-   - English content uses the faster-whisper-medium-en-cpu model by default
-   - Other languages use the Systran-faster-whisper-large-v3 universal model
-   - Auto-detection (default) intelligently selects the appropriate model
-   - Transcriptions are saved as `.md` files alongside the source video
+   Audio files are processed using one of two backends:
+
+   a. **KubeAI Backend** (default):
+      - Audio files are sent to a Whisper-based transcription API
+      - Uses language-specific models:
+        - English content uses the faster-whisper-medium-en-cpu model
+        - Other languages use the Systran-faster-whisper-large-v3 universal model
+        - Auto-detection intelligently selects the appropriate model
+
+   b. **Local Backend**:
+      - Uses whisper.cpp for local transcription
+      - Supports multiple model sizes (tiny to large)
+      - Provides offline transcription capability
+      - Auto-detection uses the configured model size
+
+   Transcriptions are saved as `.md` files alongside the source video.
 
 3. **Summarization**:
    Transcriptions are processed using the OpenAI API with the configured
@@ -175,21 +240,10 @@ Ensure the following tools are installed:
      helm install kubeai kubeai/kubeai --version 0.9.0
      ```
 
-  3. Create a values file for the models:
-     ```bash
-     cat > values.yaml <<EOF
+  3. Create a values file (`kubeai-models.yaml`):
+     ```yaml
      catalog:
-       # Universal Whisper model with multilingual support and auto-detection
-       systran-faster-whisper-large-v3:
-         enabled: true
-         features: ["SpeechToText"]
-         owner: "Systran"
-         url: "hf://Systran/faster-whisper-large-v3"
-         engine: "FasterWhisper"
-         resourceProfile: "cpu:2"
-         minReplicas: 1
-
-       # Default English model (for backward compatibility)
+       # Default English model (optimized for English content)
        faster-whisper-medium-en-cpu:
          enabled: true
          features: ["SpeechToText"]
@@ -198,21 +252,39 @@ Ensure the following tools are installed:
          engine: "FasterWhisper"
          resourceProfile: "cpu:1"
          minReplicas: 1
-     EOF
+
+       # Universal model for multilingual support and auto-detection
+       systran-faster-whisper-large-v3:
+         enabled: true
+         features: ["SpeechToText"]
+         owner: "Systran"
+         url: "hf://Systran/faster-whisper-large-v3"
+         engine: "FasterWhisper"
+         resourceProfile: "cpu:2"
+         minReplicas: 1
      ```
 
   4. Install the models (version 0.9.0):
      ```bash
-     helm install kubeai-models kubeai/models --version 0.9.0 -f values.yaml
+     helm install kubeai-models kubeai/models --version 0.9.0 -f kubeai-models.yaml
      ```
 
   5. Configure mnote:
      Update the `TRANSCRIPTION_API_URL` in your configuration to point to your KubeAI service endpoint.
+     ```bash
+     # Example configuration
+     TRANSCRIPTION_BACKEND=kubeai
+     TRANSCRIPTION_API_URL=http://kubeai.your-domain/v1/audio/transcriptions
+     ```
+
+  6. Port forward the service (for local development):
+     ```bash
+     kubectl port-forward svc/kubeai 8000:80 -n kubeai
+     ```
+     Then use `http://localhost:8000/v1/audio/transcriptions` as your `TRANSCRIPTION_API_URL`.
 
 - **OpenAI API**: You must have an OpenAI API key for the `chatgpt` CLI tool.
   Register at [OpenAI](https://platform.openai.com/).
-
-## Author
 
 Timo Derstappen
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/mnote/internal/config"
+	"github.com/giantswarm/mnote/internal/interfaces"
 	"github.com/giantswarm/mnote/internal/process"
 	"github.com/giantswarm/mnote/internal/summarize"
 	"github.com/giantswarm/mnote/internal/transcribe"
@@ -97,10 +98,15 @@ func run(opts *Options) error {
 	}
 
 	// Initialize components
-	var transcriber transcribe.Transcriber
+	var transcriber interfaces.Transcriber
 	var summarizer summarize.Summarizer
 
-	transcriber = transcribe.NewTranscriber(cfg)
+	// Initialize transcriber based on configuration
+	transcriber, err = transcribe.NewTranscriber(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to initialize transcriber: %w", err)
+	}
+
 	summarizer, err = summarize.NewSummarizer(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize summarizer: %w", err)
