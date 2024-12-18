@@ -5,13 +5,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"net/http"
 
 	"github.com/giantswarm/mnote/internal/config"
 	"github.com/giantswarm/mnote/internal/interfaces"
 	"github.com/giantswarm/mnote/internal/process"
+	"github.com/giantswarm/mnote/internal/registry"
 	"github.com/giantswarm/mnote/internal/summarize"
 	"github.com/giantswarm/mnote/internal/transcribe"
 	"github.com/giantswarm/mnote/internal/utils"
+	"github.com/giantswarm/mnote/internal/whisper"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +33,25 @@ type usageError struct {
 
 func (e *usageError) Error() string {
 	return e.msg
+}
+
+func init() {
+	// Register transcription backends
+	registry.RegisterBackend("kubeai", func(cfg *config.Config) (interfaces.Transcriber, error) {
+		return &transcribe.KubeAITranscriber{
+			Config: cfg,
+			Client: &http.Client{},
+		}, nil
+	})
+
+	registry.RegisterBackend("local", func(cfg *config.Config) (interfaces.Transcriber, error) {
+		modelName := whisper.GetDefaultModel(cfg.DefaultLanguage).Name
+		model, ok := cfg.Catalog[modelName]
+		if !ok {
+			return nil, fmt.Errorf("model %s not found in catalog", modelName)
+		}
+		return whisper.NewLocalWhisper(model)
+	})
 }
 
 func NewRootCmd() *cobra.Command {

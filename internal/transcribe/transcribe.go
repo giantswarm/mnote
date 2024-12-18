@@ -13,13 +13,14 @@ import (
 
 	"github.com/giantswarm/mnote/internal/config"
 	"github.com/giantswarm/mnote/internal/interfaces"
+	"github.com/giantswarm/mnote/internal/registry"
 	"github.com/giantswarm/mnote/internal/whisper"
 )
 
 // KubeAITranscriber implements the Transcriber interface using KubeAI
 type KubeAITranscriber struct {
-	config *config.Config
-	client HTTPClient
+	Config *config.Config
+	Client HTTPClient
 }
 
 // HTTPClient interface for mocking in tests
@@ -29,26 +30,7 @@ type HTTPClient interface {
 
 // NewTranscriber creates a new Transcriber instance based on configuration
 func NewTranscriber(cfg *config.Config) (interfaces.Transcriber, error) {
-	switch cfg.TranscriptionBackend {
-	case "local":
-		// Get appropriate model based on language
-		modelName := whisper.GetDefaultModel(cfg.DefaultLanguage).Name
-		model, ok := cfg.Catalog[modelName]
-		if !ok {
-			return nil, fmt.Errorf("model %s not found in catalog", modelName)
-		}
-
-		// Initialize local whisper transcriber with model config
-		return whisper.NewLocalWhisper(model)
-	case "kubeai":
-		// Initialize KubeAI transcriber
-		return &KubeAITranscriber{
-			config: cfg,
-			client: &http.Client{},
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported transcription backend: %s", cfg.TranscriptionBackend)
-	}
+	return registry.GetBackend(cfg.TranscriptionBackend, cfg)
 }
 
 // TranscriptionResult represents the JSON response from the API
@@ -100,7 +82,7 @@ func (t *KubeAITranscriber) TranscribeAudio(audioPath, language string) (string,
 	// Get API URL from environment or config
 	apiURL := os.Getenv("TRANSCRIPTION_API_URL")
 	if apiURL == "" {
-		apiURL = t.config.TranscriptionAPIURL
+		apiURL = t.Config.TranscriptionAPIURL
 	}
 
 	// Create request
@@ -111,7 +93,7 @@ func (t *KubeAITranscriber) TranscribeAudio(audioPath, language string) (string,
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	// Send request
-	resp, err := t.client.Do(req)
+	resp, err := t.Client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}

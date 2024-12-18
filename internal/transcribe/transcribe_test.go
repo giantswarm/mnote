@@ -2,6 +2,7 @@ package transcribe
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,7 +10,40 @@ import (
 	"testing"
 
 	"github.com/giantswarm/mnote/internal/config"
+	"github.com/giantswarm/mnote/internal/interfaces"
+	"github.com/giantswarm/mnote/internal/registry"
 )
+
+// MockTranscriber implements the Transcriber interface for testing
+type MockTranscriber struct {
+	ReturnText string
+	ReturnErr  error
+}
+
+func (m *MockTranscriber) TranscribeAudio(audioPath, language string) (string, error) {
+	return m.ReturnText, m.ReturnErr
+}
+
+func init() {
+	// Register mock backend for testing
+	registry.RegisterBackend("kubeai", func(cfg *config.Config) (interfaces.Transcriber, error) {
+		return &MockTranscriber{
+			ReturnText: "Test transcription",
+			ReturnErr:  nil,
+		}, nil
+	})
+
+	// Register local backend with error handling
+	registry.RegisterBackend("local", func(cfg *config.Config) (interfaces.Transcriber, error) {
+		if cfg.LocalModelPath == "/nonexistent/model.bin" {
+			return nil, fmt.Errorf("model file not found: %s", cfg.LocalModelPath)
+		}
+		return &MockTranscriber{
+			ReturnText: "Test transcription",
+			ReturnErr:  nil,
+		}, nil
+	})
+}
 
 func TestNewTranscriber(t *testing.T) {
 	tests := []struct {

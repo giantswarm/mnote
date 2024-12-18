@@ -234,6 +234,43 @@ Ensure the following tools are installed:
 - **OpenAI API**: You must have an OpenAI API key for the `chatgpt` CLI tool.
   Register at [OpenAI](https://platform.openai.com/).
 
+## Adding Custom Transcription Backends
+
+mnote supports pluggable transcription backends, allowing you to implement and register your own transcription services. To add a new backend:
+
+1. Implement the `interfaces.Transcriber` interface:
+   ```go
+   type Transcriber interface {
+       TranscribeAudio(audioPath string, lang string) (string, error)
+   }
+   ```
+
+2. Create a factory function that takes a `*config.Config` and returns your implementation:
+   ```go
+   func NewMyBackend(cfg *config.Config) (interfaces.Transcriber, error) {
+       return &MyBackend{
+           // initialize your backend
+       }, nil
+   }
+   ```
+
+3. Register your backend using `transcribe.RegisterBackend`:
+   ```go
+   func init() {
+       transcribe.RegisterBackend("my-backend", func(cfg *config.Config) (interfaces.Transcriber, error) {
+           return NewMyBackend(cfg)
+       })
+   }
+   ```
+
+4. Configure mnote to use your backend:
+   ```bash
+   # ~/.config/mnote/config
+   TRANSCRIPTION_BACKEND=my-backend
+   ```
+
+Your backend will have access to the full configuration structure and can implement its own model management, caching, and language support. See the KubeAI and local whisper implementations for examples.
+
 ## Author
 
 Timo Derstappen
