@@ -1,117 +1,75 @@
 # mnote
 
-**mnote** is a CLI tool for summarizing meetings using AI. It transcribes audio from video files, processes the transcription using a Whisper-based API, and generates detailed summaries with ChatGPT.
+mnote is a command-line tool for transcribing and summarizing video files using Whisper and ChatGPT. Written in Go, it provides robust audio processing, transcription, and AI-powered summarization capabilities.
 
 ## Features
 
-- Extracts audio from video files.
-- Transcribes audio using a configurable Whisper-based transcription service.
-- Summarizes transcripts using ChatGPT with customizable prompts.
-- Configurable transcription API, Whisper model, and ChatGPT model.
+- Video to text transcription using configurable Whisper models
+- Text summarization using ChatGPT with customizable prompts
+- Support for multiple languages (English, German, Spanish, French, and auto-detection)
+- Language-specific model selection
+- Force rebuild option for regenerating transcripts and summaries
+- Supports various video formats (.mp4, .mkv, .avi, .mov)
 
----
+## Prerequisites
+
+- Go 1.21 or later
+- FFmpeg (for audio extraction)
+- OpenAI API key
+- KubeAI installation for transcription service
 
 ## Installation
 
-### Prerequisites
-Ensure the following tools are installed on your system and available in the `PATH`:
-- `ffmpeg` (for audio extraction)
-- `curl` (for API requests)
-- `jq` (for processing JSON output)
-- `chatgpt` ([chatgpt-cli](https://github.com/kardolus/chatgpt-cli) for summarization)
+### From Source
 
-### Environment Variable
-
-Set your OpenAI API key for the `chatgpt` tool:
-
+1. Clone the repository:
 ```bash
-export OPENAI_API_KEY="your_openai_api_key"
-```
-
-### Clone and Setup
-
-Clone the repository:
-
-```bash
-git clone https://github.com/teemow/mnote.git
+git clone https://github.com/giantswarm/mnote.git
 cd mnote
 ```
 
-:> [!WARNING]
->
-Make the script executable:
+2. Install Go dependencies:
+```bash
+go mod download
+```
+
+3. Build the binary:
+```bash
+go build -o mnote ./cmd/mnote
+```
+
+4. Move the binary to your PATH:
+```bash
+sudo mv mnote /usr/local/bin/
+```
+
+### Configuration
+
+The configuration file is automatically created at `~/.config/mnote/config` with default values on first run. You can also manually create or modify it:
 
 ```bash
-chmod +x mnote
-```
-
-(Optional) Add it to your `PATH`:
-
-```bash
-sudo mv mnote /usr/local/bin/mnote
-```
-
----
-
-## Configuration
-
-### Default Configuration
-
-Upon first run, **mnote** will create a configuration directory at
-`~/.config/mnote` with the following structure:
-
-```
-~/.config/mnote/
-├── config
-└── prompts/
-    └── summarize
-```
-
-### Configuration File (`~/.config/mnote/config`)
-
-The `config` file contains the following default values:
-
-```ini
-# Default language setting (auto, en, de, es, fr)
+# Default configuration file (~/.config/mnote/config)
+TRANSCRIPTION_API_URL=http://localhost:8000/v1/audio/transcriptions
 DEFAULT_LANGUAGE=auto
 
 # Language-specific model configuration
-# English model (optimized for English content)
-WHISPER_MODEL_EN=faster-whisper-medium-en-cpu
+WHISPER_MODEL_EN=faster-whisper-medium-en-cpu    # Optimized for English
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3 # Universal model for German
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3 # Universal model for Spanish
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3 # Universal model for French
 
-# Other language models (using universal model)
-WHISPER_MODEL_DE=systran-faster-whisper-large-v3
-WHISPER_MODEL_ES=systran-faster-whisper-large-v3
-WHISPER_MODEL_FR=systran-faster-whisper-large-v3
-
-# Transcription API URL
-TRANSCRIPTION_API_URL=https://example.com/openai/v1/audio/transcriptions
-
-# ChatGPT Model for Summarization
-CHATGPT_MODEL=gpt-4o-2024-05-13
+# ChatGPT configuration
+CHATGPT_MODEL=gpt-4o
 ```
-
-You can edit these values to customize:
-- The transcription API endpoint
-- Default language for transcription (auto-detection by default)
-- Language-specific Whisper models
-  - English uses the medium model optimized for English content
-  - Other languages use the large universal model by default
-- ChatGPT model for summarization
 
 ### Prompts
 
-Prompts are stored in `~/.config/mnote/prompts`. The default prompt
-(`summarize`) is created automatically:
+Create custom prompts in `~/.config/mnote/prompts/`. The default summarization prompt is automatically created at `~/.config/mnote/prompts/summarize`:
 
-```plaintext
-Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented. If specific names are included in the transcript, use them to accurately attribute the statements. Also document all important feedback and planned actions. Pay attention to details on time frames, responsibilities, open questions and any next steps. Conclude the summary with a brief overview of the key findings and next steps.
+```bash
+# Default summary prompt
+Create a detailed summary of the following meeting transcript. Structure the summary according to the main topics discussed and organize the information into logical sections. For each topic, summarize who was involved, what was discussed in detail, what decisions were made, what problems or challenges were identified, and what solutions were proposed or implemented.
 ```
-
-To add a custom prompt, create a new file in the `prompts` Directory
-(e.g., `meeting`) and reference it using the `--prompt` option.
-
----
 
 ## Usage
 
@@ -158,8 +116,6 @@ mnote --language fr /path/to/videos     # French
 mnote --language auto /path/to/videos   # Auto-detect language
 ```
 
----
-
 ## How It Works
 
 1. **Audio Extraction**:
@@ -170,14 +126,14 @@ mnote --language auto /path/to/videos   # Auto-detect language
    Audio files are sent to a Whisper-based transcription API specified in the
    configuration (`TRANSCRIPTION_API_URL`). The script uses language-specific models:
    - English content uses the faster-whisper-medium-en-cpu model by default
-   - Other languages use the Systran/faster-whisper-large-v3 universal model
+   - Other languages use the Systran-faster-whisper-large-v3 universal model
    - Auto-detection (default) intelligently selects the appropriate model
-   - Saves transcription results as `.json` files alongside the source video
+   - Transcriptions are saved as `.md` files alongside the source video
 
 3. **Summarization**:
-   Transcriptions are processed using the `chatgpt` CLI tool with the
-   specified ChatGPT model and prompt. If a summary file already exists
-   for a video, the ChatGPT processing step is skipped to avoid
+   Transcriptions are processed using the OpenAI API with the configured
+   ChatGPT model (gpt-4o by default) and specified prompt. If a summary file already exists
+   for a video and --force is not used, the summarization step is skipped to avoid
    unnecessary API calls.
 
 4. **Output**:
@@ -187,16 +143,12 @@ mnote --language auto /path/to/videos   # Auto-detect language
    The default "summarize" prompt maintains the original filename format
    (e.g., `video.md`).
 
----
-
 ## Supported File Formats
 
 - `.mp4`
 - `.mkv`
 - `.avi`
 - `.mov`
-
----
 
 ## Dependencies
 
@@ -206,8 +158,6 @@ Ensure the following tools are installed:
 - `curl`: [Installation Guide](https://curl.se/)
 - `jq`: [Installation Guide](https://stedolan.github.io/jq/download/)
 - `chatgpt`: Install from [chatgpt-cli](https://github.com/kardolus/chatgpt-cli)
-
----
 
 ## Notes
 
@@ -262,13 +212,9 @@ Ensure the following tools are installed:
 - **OpenAI API**: You must have an OpenAI API key for the `chatgpt` CLI tool.
   Register at [OpenAI](https://platform.openai.com/).
 
----
-
 ## Author
 
 Timo Derstappen
-
----
 
 ## License
 
