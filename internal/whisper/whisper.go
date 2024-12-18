@@ -58,7 +58,7 @@ func New(modelPath string) (*LocalWhisper, error) {
 
 // Close releases resources associated with the model
 func (w *LocalWhisper) Close() error {
-	if w.model != nil {
+	if w != nil && w.model != nil {
 		w.model.Close()
 	}
 	return nil

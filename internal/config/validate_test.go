@@ -12,7 +12,17 @@ func TestValidateConfig(t *testing.T) {
 			name: "valid kubeai config",
 			cfg: &Config{
 				TranscriptionBackend: "kubeai",
-				TranscriptionAPIURL: "https://api.example.com",
+				TranscriptionAPIURL:  "https://api.example.com",
+				Catalog: map[string]ModelConfig{
+					"faster-whisper-medium-en-cpu": {
+						Enabled:  true,
+						Features: []string{"SpeechToText"},
+						Owner:    "systran",
+						URL:      "hf://systran/faster-whisper-medium-en",
+						Engine:   "FasterWhisper",
+						Language: "en",
+					},
+				},
 			},
 			wantErr: false,
 		},
@@ -20,8 +30,19 @@ func TestValidateConfig(t *testing.T) {
 			name: "valid local config",
 			cfg: &Config{
 				TranscriptionBackend: "local",
-				LocalModelPath:      "~/.config/mnote/models/model.bin",
-				LocalModelSize:      "base",
+				LocalModelPath:       "~/.config/mnote/models/model.bin",
+				LocalModelSize:       "base",
+				Catalog: map[string]ModelConfig{
+					"faster-whisper-large-v3": {
+						Enabled:   true,
+						Features:  []string{"SpeechToText"},
+						Owner:     "systran",
+						URL:       "hf://systran/faster-whisper-large-v3",
+						Engine:    "FasterWhisper",
+						LocalPath: "~/.config/mnote/models/model.bin",
+						Language:  "auto",
+					},
+				},
 			},
 			wantErr: false,
 		},
@@ -29,6 +50,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid backend",
 			cfg: &Config{
 				TranscriptionBackend: "invalid",
+				Catalog: map[string]ModelConfig{},
 			},
 			wantErr: true,
 		},
@@ -36,8 +58,9 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid model size",
 			cfg: &Config{
 				TranscriptionBackend: "local",
-				LocalModelPath:      "path/to/model",
-				LocalModelSize:      "invalid",
+				LocalModelPath:       "path/to/model",
+				LocalModelSize:       "invalid",
+				Catalog:             map[string]ModelConfig{},
 			},
 			wantErr: true,
 		},
@@ -45,7 +68,8 @@ func TestValidateConfig(t *testing.T) {
 			name: "missing model path",
 			cfg: &Config{
 				TranscriptionBackend: "local",
-				LocalModelSize:      "base",
+				LocalModelSize:       "base",
+				Catalog:             map[string]ModelConfig{},
 			},
 			wantErr: true,
 		},

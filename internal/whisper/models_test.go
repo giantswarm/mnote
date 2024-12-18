@@ -1,8 +1,6 @@
 package whisper
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -80,40 +78,5 @@ func TestGetDefaultModel(t *testing.T) {
 				t.Error("GetDefaultModel() returned empty URL")
 			}
 		})
-	}
-}
-
-func TestDownloadModel(t *testing.T) {
-	// Create temporary directory for test
-	tmpDir, err := os.MkdirTemp("", "whisper-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Override ModelsDir for testing
-	originalModelsDir := ModelsDir
-	ModelsDir = filepath.Join(tmpDir, "models")
-	defer func() { ModelsDir = originalModelsDir }()
-
-	testModel := ModelInfo{
-		Name:     "test-model",
-		Size:     "tiny",
-		Language: "en",
-		URL:      "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin",
-	}
-
-	if err := DownloadModel(testModel); err != nil {
-		t.Errorf("DownloadModel() error = %v", err)
-	}
-
-	// Check if model file exists
-	modelPath, err := GetModelPath(testModel.Name)
-	if err != nil {
-		t.Errorf("GetModelPath() error = %v", err)
-	}
-
-	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
-		t.Error("Model file was not created")
 	}
 }

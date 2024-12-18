@@ -30,6 +30,7 @@ type ModelConfig struct {
 	ResourceProfile string   `yaml:"resourceProfile,omitempty"`
 	MinReplicas     int      `yaml:"minReplicas,omitempty"`
 	LocalPath       string   `yaml:"localPath,omitempty"`
+	Language        string   `yaml:"language,omitempty"`
 }
 
 // DefaultConfig returns a Config with default values

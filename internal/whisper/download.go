@@ -43,6 +43,10 @@ func DownloadModel(modelConfig config.ModelConfig) (string, error) {
 		return "", fmt.Errorf("model URL not specified")
 	}
 
+	if modelConfig.LocalPath == "" {
+		return "", fmt.Errorf("local path not specified")
+	}
+
 	// Parse HuggingFace URL
 	owner, model, err := parseHFURL(modelConfig.URL)
 	if err != nil {
