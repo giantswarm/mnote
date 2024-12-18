@@ -31,8 +31,15 @@ type HTTPClient interface {
 func NewTranscriber(cfg *config.Config) (interfaces.Transcriber, error) {
 	switch cfg.TranscriptionBackend {
 	case "local":
-		// Initialize local whisper transcriber
-		return whisper.New(cfg.LocalModelPath)
+		// Get appropriate model based on language
+		modelName := whisper.GetDefaultModel(cfg.DefaultLanguage).Name
+		model, ok := cfg.Catalog[modelName]
+		if !ok {
+			return nil, fmt.Errorf("model %s not found in catalog", modelName)
+		}
+
+		// Initialize local whisper transcriber with model config
+		return whisper.NewLocalWhisper(model)
 	case "kubeai":
 		// Initialize KubeAI transcriber
 		return &KubeAITranscriber{
