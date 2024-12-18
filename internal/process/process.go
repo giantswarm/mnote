@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/giantswarm/mnote/internal/config"
+	"github.com/giantswarm/mnote/internal/interfaces"
 	"github.com/giantswarm/mnote/internal/summarize"
-	"github.com/giantswarm/mnote/internal/transcribe"
 	"github.com/giantswarm/mnote/internal/utils"
 )
 
@@ -19,12 +19,12 @@ type Options struct {
 // Processor handles the complete video processing workflow
 type Processor struct {
 	config      *config.Config
-	transcriber transcribe.Transcriber
+	transcriber interfaces.Transcriber
 	summarizer  summarize.Summarizer
 }
 
 // NewProcessor creates a new Processor instance
-func NewProcessor(cfg *config.Config, transcriber transcribe.Transcriber, summarizer summarize.Summarizer) *Processor {
+func NewProcessor(cfg *config.Config, transcriber interfaces.Transcriber, summarizer summarize.Summarizer) *Processor {
 	return &Processor{
 		config:      cfg,
 		transcriber: transcriber,
@@ -60,7 +60,7 @@ func (p *Processor) ProcessVideo(path string, opts Options) error {
 		}
 
 		// Save transcript
-		if err := utils.WriteFile(transcriptPath, []byte(result.Text)); err != nil {
+		if err := utils.WriteFile(transcriptPath, []byte(result)); err != nil {
 			return fmt.Errorf("failed to save transcript: %w", err)
 		}
 		fmt.Printf("Transcript saved to: %s\n", transcriptPath)
