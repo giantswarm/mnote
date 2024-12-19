@@ -22,15 +22,19 @@ type Config struct {
 
 // ModelConfig holds configuration for a specific model
 type ModelConfig struct {
-	Enabled         bool     `yaml:"enabled"`
-	Features        []string `yaml:"features"`
-	Owner           string   `yaml:"owner"`
-	URL             string   `yaml:"url"`
-	Engine          string   `yaml:"engine"`
-	ResourceProfile string   `yaml:"resourceProfile,omitempty"`
-	MinReplicas     int      `yaml:"minReplicas,omitempty"`
-	LocalPath       string   `yaml:"localPath,omitempty"`
-	Language        string   `yaml:"language,omitempty"`
+	Enabled  bool     `yaml:"enabled"`
+	Features []string `yaml:"features"`
+	Owner    string   `yaml:"owner"`
+	URL      string   `yaml:"url"`
+	Engine   string   `yaml:"engine"`
+	Language string   `yaml:"language,omitempty"`
+
+	// Local backend specific configuration
+	LocalPath string `yaml:"localPath,omitempty"`
+
+	// KubeAI backend specific configuration (ignored for local backend)
+	ResourceProfile string `yaml:"resourceProfile,omitempty"`
+	MinReplicas     int    `yaml:"minReplicas,omitempty"`
 }
 
 // DefaultConfig returns a Config with default values
@@ -48,6 +52,7 @@ func DefaultConfig() *Config {
 				Owner:    "systran",
 				URL:      "hf://systran/faster-whisper-medium-en",
 				Engine:   "FasterWhisper",
+				Language: "en",
 				LocalPath: "~/.config/mnote/models/faster-whisper-medium-en.bin",
 			},
 			"systran-faster-whisper-large-v3": {

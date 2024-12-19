@@ -201,7 +201,7 @@ Ensure the following tools are installed:
      ```
 
   2. Model Configuration:
-     Models are configured in the same format as KubeAI for consistency:
+     Configure models in your mnote config file (`~/.config/mnote/config`):
      ```yaml
      catalog:
        faster-whisper-medium-en-cpu:  # English-optimized model
@@ -210,6 +210,7 @@ Ensure the following tools are installed:
          owner: "systran"
          url: "hf://systran/faster-whisper-medium-en"
          engine: "FasterWhisper"
+         language: "en"
          localPath: "~/.config/mnote/models/faster-whisper-medium-en.bin"
 
        systran-faster-whisper-large-v3:  # Universal model
