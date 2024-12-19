@@ -9,11 +9,92 @@ import (
 	"testing"
 
 	"github.com/giantswarm/mnote/internal/config"
+	"github.com/giantswarm/mnote/internal/interfaces"
+	"github.com/giantswarm/mnote/internal/registry"
 )
 
-func TestTranscribeAudio(t *testing.T) {
+// MockTranscriber implements the Transcriber interface for testing
+type MockTranscriber struct {
+	ReturnText string
+	ReturnErr  error
+}
+
+func (m *MockTranscriber) TranscribeAudio(audioPath, language string) (string, error) {
+	return m.ReturnText, m.ReturnErr
+}
+
+func init() {
+	// Register mock backend for testing
+	registry.RegisterBackend("kubeai", func(cfg *config.Config) (interfaces.Transcriber, error) {
+		return &MockTranscriber{
+			ReturnText: "Test transcription",
+			ReturnErr:  nil,
+		}, nil
+	})
+
+	// Register local backend with error handling
+	registry.RegisterBackend("local", func(cfg *config.Config) (interfaces.Transcriber, error) {
+		return &MockTranscriber{
+			ReturnText: "Test transcription",
+			ReturnErr:  nil,
+		}, nil
+	})
+}
+
+func TestNewTranscriber(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *config.Config
+		wantErr bool
+	}{
+		{
+			name: "valid config",
+			cfg: &config.Config{
+				TranscriptionAPIURL: "http://example.com",
+				DefaultLanguage:    "auto",
+				WhisperModelEN:    "faster-whisper-medium-en-cpu",
+				WhisperModelDE:    "systran-faster-whisper-large-v3",
+				WhisperModelES:    "systran-faster-whisper-large-v3",
+				WhisperModelFR:    "systran-faster-whisper-large-v3",
+				ChatGPTModel:      "gpt-4o",
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing API URL",
+			cfg: &config.Config{
+				DefaultLanguage: "auto",
+				WhisperModelEN: "faster-whisper-medium-en-cpu",
+				ChatGPTModel:   "gpt-4o",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transcriber, err := NewTranscriber(tt.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewTranscriber() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil && transcriber == nil {
+				t.Error("NewTranscriber() returned nil transcriber without error")
+			}
+		})
+	}
+}
+
+func TestKubeAITranscribeAudio(t *testing.T) {
 	// Create test config
-	cfg := config.DefaultConfig()
+	cfg := &config.Config{
+		TranscriptionAPIURL: "http://example.com",
+		DefaultLanguage:     "auto",
+		WhisperModelEN:     "faster-whisper-medium-en-cpu",
+		WhisperModelDE:     "systran-faster-whisper-large-v3",
+		WhisperModelES:     "systran-faster-whisper-large-v3",
+		WhisperModelFR:     "systran-faster-whisper-large-v3",
+	}
 
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,8 +118,16 @@ func TestTranscribeAudio(t *testing.T) {
 		if _, ok := r.MultipartForm.File["file"]; !ok {
 			t.Error("file field missing from request")
 		}
-		if model := r.FormValue("model"); model == "" {
+
+		// Verify model field matches expected model for language
+		model := r.FormValue("model")
+		if model == "" {
 			t.Error("model field missing from request")
+		}
+		language := r.FormValue("language")
+		expectedModel := cfg.GetWhisperModel(language)
+		if model != expectedModel {
+			t.Errorf("incorrect model for language %s, got %s, want %s", language, model, expectedModel)
 		}
 
 		// Return test response
@@ -51,7 +140,10 @@ func TestTranscribeAudio(t *testing.T) {
 	cfg.TranscriptionAPIURL = server.URL
 
 	// Create transcriber
-	transcriber := NewTranscriber(cfg)
+	transcriber, err := NewTranscriber(cfg)
+	if err != nil {
+		t.Fatalf("failed to create transcriber: %v", err)
+	}
 
 	// Create temporary audio file
 	tmpDir := t.TempDir()
@@ -84,13 +176,13 @@ func TestTranscribeAudio(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := transcriber.TranscribeAudio(audioPath, tt.language)
+			text, err := transcriber.TranscribeAudio(audioPath, tt.language)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TranscribeAudio() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr && result.Text != "Test transcription" {
-				t.Errorf("TranscribeAudio() = %v, want %v", result.Text, "Test transcription")
+			if !tt.wantErr && text != "Test transcription" {
+				t.Errorf("TranscribeAudio() = %v, want %v", text, "Test transcription")
 			}
 		})
 	}

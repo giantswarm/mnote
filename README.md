@@ -176,29 +176,11 @@ Ensure the following tools are installed:
      ```
 
   3. Create a values file for the models:
-     ```bash
-     cat > values.yaml <<EOF
+     ```yaml
      catalog:
-       # Universal Whisper model with multilingual support and auto-detection
-       systran-faster-whisper-large-v3:
-         enabled: true
-         features: ["SpeechToText"]
-         owner: "Systran"
-         url: "hf://Systran/faster-whisper-large-v3"
-         engine: "FasterWhisper"
-         resourceProfile: "cpu:2"
-         minReplicas: 1
-
-       # Default English model (for backward compatibility)
        faster-whisper-medium-en-cpu:
          enabled: true
-         features: ["SpeechToText"]
-         owner: "Systran"
-         url: "hf://Systran/faster-whisper-medium-en"
-         engine: "FasterWhisper"
-         resourceProfile: "cpu:1"
          minReplicas: 1
-     EOF
      ```
 
   4. Install the models (version 0.9.0):

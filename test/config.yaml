@@ -1,0 +1,7 @@
+TRANSCRIPTION_API_URL: https://api.kubeai.org/v1/audio/transcriptions
+DEFAULT_LANGUAGE: auto
+WHISPER_MODEL_EN: faster-whisper-medium-en-cpu
+WHISPER_MODEL_DE: systran-faster-whisper-large-v3
+WHISPER_MODEL_ES: systran-faster-whisper-large-v3
+WHISPER_MODEL_FR: systran-faster-whisper-large-v3
+CHATGPT_MODEL: gpt-4o

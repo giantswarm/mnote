@@ -9,21 +9,27 @@ import (
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 
+	// Test default values
+	if cfg.TranscriptionAPIURL != "https://api.kubeai.org/v1/audio/transcriptions" {
+		t.Errorf("expected TranscriptionAPIURL to be 'https://api.kubeai.org/v1/audio/transcriptions', got %s", cfg.TranscriptionAPIURL)
+	}
 	if cfg.DefaultLanguage != "auto" {
 		t.Errorf("expected DefaultLanguage to be 'auto', got %s", cfg.DefaultLanguage)
 	}
-
-	expectedModels := map[string]string{
-		"en": "faster-whisper-medium-en-cpu",
-		"de": "systran-faster-whisper-large-v3",
-		"es": "systran-faster-whisper-large-v3",
-		"fr": "systran-faster-whisper-large-v3",
+	if cfg.WhisperModelEN != "faster-whisper-medium-en-cpu" {
+		t.Errorf("expected WhisperModelEN to be 'faster-whisper-medium-en-cpu', got %s", cfg.WhisperModelEN)
 	}
-
-	for lang, expectedModel := range expectedModels {
-		if model, ok := cfg.WhisperModels[lang]; !ok || model != expectedModel {
-			t.Errorf("expected WhisperModels[%s] to be %s, got %s", lang, expectedModel, model)
-		}
+	if cfg.WhisperModelDE != "systran-faster-whisper-large-v3" {
+		t.Errorf("expected WhisperModelDE to be 'systran-faster-whisper-large-v3', got %s", cfg.WhisperModelDE)
+	}
+	if cfg.WhisperModelES != "systran-faster-whisper-large-v3" {
+		t.Errorf("expected WhisperModelES to be 'systran-faster-whisper-large-v3', got %s", cfg.WhisperModelES)
+	}
+	if cfg.WhisperModelFR != "systran-faster-whisper-large-v3" {
+		t.Errorf("expected WhisperModelFR to be 'systran-faster-whisper-large-v3', got %s", cfg.WhisperModelFR)
+	}
+	if cfg.ChatGPTModel != "gpt-4o" {
+		t.Errorf("expected ChatGPTModel to be 'gpt-4o', got %s", cfg.ChatGPTModel)
 	}
 }
 
@@ -38,7 +44,7 @@ func TestGetWhisperModel(t *testing.T) {
 		{
 			name:     "auto detection",
 			language: "auto",
-			want:     "systran-faster-whisper-large-v3", // Updated to use large model
+			want:     "faster-whisper-medium-en-cpu",
 		},
 		{
 			name:     "english model",
@@ -51,9 +57,19 @@ func TestGetWhisperModel(t *testing.T) {
 			want:     "systran-faster-whisper-large-v3",
 		},
 		{
+			name:     "spanish model",
+			language: "es",
+			want:     "systran-faster-whisper-large-v3",
+		},
+		{
+			name:     "french model",
+			language: "fr",
+			want:     "systran-faster-whisper-large-v3",
+		},
+		{
 			name:     "unsupported language",
 			language: "invalid",
-			want:     "systran-faster-whisper-large-v3", // Updated to use large model as fallback
+			want:     "faster-whisper-medium-en-cpu",
 		},
 	}
 
@@ -81,10 +97,13 @@ func TestLoadConfig(t *testing.T) {
 	}
 
 	// Test with custom config
-	configContent := `TRANSCRIPTION_API_URL=https://test.api/transcribe
-DEFAULT_LANGUAGE=de
-WHISPER_MODEL_EN=custom-en-model
-CHATGPT_MODEL=gpt-4-turbo`
+	configContent := `TRANSCRIPTION_API_URL=https://api.kubeai.org/v1/audio/transcriptions
+DEFAULT_LANGUAGE=en
+WHISPER_MODEL_EN=faster-whisper-medium-en-cpu
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3
+CHATGPT_MODEL=gpt-4o`
 
 	err = os.WriteFile(filepath.Join(configDir, "config"), []byte(configContent), 0644)
 	if err != nil {
@@ -97,16 +116,16 @@ CHATGPT_MODEL=gpt-4-turbo`
 	}
 
 	// Verify loaded values
-	if cfg.TranscriptionAPIURL != "https://test.api/transcribe" {
-		t.Errorf("expected TranscriptionAPIURL to be 'https://test.api/transcribe', got %s", cfg.TranscriptionAPIURL)
+	if cfg.TranscriptionAPIURL != "https://api.kubeai.org/v1/audio/transcriptions" {
+		t.Errorf("expected TranscriptionAPIURL to be 'https://api.kubeai.org/v1/audio/transcriptions', got %s", cfg.TranscriptionAPIURL)
 	}
-	if cfg.DefaultLanguage != "de" {
-		t.Errorf("expected DefaultLanguage to be 'de', got %s", cfg.DefaultLanguage)
+	if cfg.DefaultLanguage != "en" {
+		t.Errorf("expected DefaultLanguage to be 'en', got %s", cfg.DefaultLanguage)
 	}
-	if cfg.WhisperModels["en"] != "custom-en-model" {
-		t.Errorf("expected WhisperModels[en] to be 'custom-en-model', got %s", cfg.WhisperModels["en"])
+	if cfg.WhisperModelEN != "faster-whisper-medium-en-cpu" {
+		t.Errorf("expected WhisperModelEN to be 'faster-whisper-medium-en-cpu', got %s", cfg.WhisperModelEN)
 	}
-	if cfg.ChatGPTModel != "gpt-4-turbo" {
-		t.Errorf("expected ChatGPTModel to be 'gpt-4-turbo', got %s", cfg.ChatGPTModel)
+	if cfg.ChatGPTModel != "gpt-4o" {
+		t.Errorf("expected ChatGPTModel to be 'gpt-4o', got %s", cfg.ChatGPTModel)
 	}
 }

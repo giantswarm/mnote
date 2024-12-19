@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/giantswarm/mnote/internal/config"
-	"github.com/giantswarm/mnote/internal/transcribe"
 	"github.com/giantswarm/mnote/internal/utils"
 )
 
@@ -16,11 +15,11 @@ type mockTranscriber struct {
 	err       error
 }
 
-func (m *mockTranscriber) TranscribeAudio(audioPath, language string) (*transcribe.TranscriptionResult, error) {
+func (m *mockTranscriber) TranscribeAudio(audioPath, language string) (string, error) {
 	if m.err != nil {
-		return nil, m.err
+		return "", m.err
 	}
-	return &transcribe.TranscriptionResult{Text: m.transcript}, nil
+	return m.transcript, nil
 }
 
 // mockSummarizer implements summarize.Summarizer interface
@@ -52,16 +51,20 @@ func TestProcessVideo(t *testing.T) {
 	defer utils.SetFFmpegRunner(&utils.DefaultFFmpegRunner{})
 
 	// Create mock dependencies
-	cfg := config.DefaultConfig()
+	cfg := &config.Config{
+		TranscriptionAPIURL: "http://test-api",
+		DefaultLanguage:    "auto",
+		WhisperModelEN:    "faster-whisper-medium-en-cpu",
+		WhisperModelDE:    "systran-faster-whisper-large-v3",
+		WhisperModelES:    "systran-faster-whisper-large-v3",
+		WhisperModelFR:    "systran-faster-whisper-large-v3",
+		ChatGPTModel:      "gpt-4o",
+	}
 	transcriber := &mockTranscriber{transcript: "Test transcript"}
 	summarizer := &mockSummarizer{summary: "Test summary"}
 
 	// Create processor
-	processor := &Processor{
-		config:      cfg,
-		transcriber: transcriber,
-		summarizer:  summarizer,
-	}
+	processor := NewProcessor(cfg, transcriber, summarizer)
 
 	// Test processing
 	opts := Options{
@@ -81,18 +84,13 @@ func TestProcessVideo(t *testing.T) {
 	}
 
 	// Verify output files
-	transcriptPath := filepath.Join(tmpDir, "test_transcript.md")
-	summaryPath := filepath.Join(tmpDir, "test_test.md")
+	transcriptPath := utils.GetOutputPath(videoPath, "transcript")
+	summaryPath := utils.GetOutputPath(videoPath, opts.PromptName)
 
-	if !fileExists(transcriptPath) {
+	if !utils.FileExists(transcriptPath) {
 		t.Error("Transcript file not created")
 	}
-	if !fileExists(summaryPath) {
+	if !utils.FileExists(summaryPath) {
 		t.Error("Summary file not created")
 	}
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
