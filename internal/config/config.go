@@ -4,67 +4,31 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/viper"
 )
 
 // Config holds all configuration settings for mnote
 type Config struct {
-	TranscriptionAPIURL  string                 `mapstructure:"TRANSCRIPTION_API_URL"`
-	TranscriptionBackend string                 `mapstructure:"TRANSCRIPTION_BACKEND"` // "local" or "kubeai"
-	LocalModelPath       string                 `mapstructure:"LOCAL_MODEL_PATH"`
-	LocalModelSize       string                 `mapstructure:"LOCAL_MODEL_SIZE"` // tiny, base, small, medium, large
-	DefaultLanguage      string                 `mapstructure:"DEFAULT_LANGUAGE"`
-	Catalog              map[string]ModelConfig `mapstructure:"catalog"`
-	ChatGPTModel         string                 `mapstructure:"CHATGPT_MODEL"`
-}
-
-// ModelConfig holds configuration for a specific model
-type ModelConfig struct {
-	Enabled  bool     `yaml:"enabled"`
-	Features []string `yaml:"features"`
-	Owner    string   `yaml:"owner"`
-	URL      string   `yaml:"url"`
-	Engine   string   `yaml:"engine"`
-	Language string   `yaml:"language,omitempty"`
-
-	// Local backend specific configuration
-	LocalPath string `yaml:"localPath,omitempty"`
-
-	// KubeAI backend specific configuration (ignored for local backend)
-	ResourceProfile string `yaml:"resourceProfile,omitempty"`
-	MinReplicas     int    `yaml:"minReplicas,omitempty"`
+	TranscriptionAPIURL string `mapstructure:"TRANSCRIPTION_API_URL"`
+	DefaultLanguage    string `mapstructure:"DEFAULT_LANGUAGE"`
+	WhisperModelEN    string `mapstructure:"WHISPER_MODEL_EN"`
+	WhisperModelDE    string `mapstructure:"WHISPER_MODEL_DE"`
+	WhisperModelES    string `mapstructure:"WHISPER_MODEL_ES"`
+	WhisperModelFR    string `mapstructure:"WHISPER_MODEL_FR"`
+	ChatGPTModel      string `mapstructure:"CHATGPT_MODEL"`
 }
 
 // DefaultConfig returns a Config with default values
 func DefaultConfig() *Config {
 	return &Config{
-		TranscriptionAPIURL:  "https://api.kubeai.org/v1/audio/transcriptions",
-		TranscriptionBackend: "kubeai", // Default to KubeAI for backward compatibility
-		LocalModelPath:       "~/.config/mnote/models/ggml-base.en.bin",
-		LocalModelSize:       "base",
-		DefaultLanguage:      "auto",
-		Catalog: map[string]ModelConfig{
-			"faster-whisper-medium-en-cpu": {
-				Enabled:  true,
-				Features: []string{"SpeechToText"},
-				Owner:    "systran",
-				URL:      "hf://systran/faster-whisper-medium-en",
-				Engine:   "FasterWhisper",
-				Language: "en",
-				LocalPath: "~/.config/mnote/models/faster-whisper-medium-en.bin",
-			},
-			"systran-faster-whisper-large-v3": {
-				Enabled:  true,
-				Features: []string{"SpeechToText"},
-				Owner:    "systran",
-				URL:      "hf://systran/faster-whisper-large-v3",
-				Engine:   "FasterWhisper",
-				LocalPath: "~/.config/mnote/models/faster-whisper-large-v3.bin",
-			},
-		},
-		ChatGPTModel: "gpt-4o",
+		TranscriptionAPIURL: "https://api.kubeai.org/v1/audio/transcriptions",
+		DefaultLanguage:    "auto",
+		WhisperModelEN:    "faster-whisper-medium-en-cpu",
+		WhisperModelDE:    "systran-faster-whisper-large-v3",
+		WhisperModelES:    "systran-faster-whisper-large-v3",
+		WhisperModelFR:    "systran-faster-whisper-large-v3",
+		ChatGPTModel:      "gpt-4o",
 	}
 }
 
@@ -108,10 +72,11 @@ func LoadConfig() (*Config, error) {
 			// Create default config file only in non-test environment
 			if os.Getenv("HOME") != "/home/ubuntu/mnote/test" {
 				defaultConfig := `TRANSCRIPTION_API_URL=https://api.kubeai.org/v1/audio/transcriptions
-TRANSCRIPTION_BACKEND=kubeai
-LOCAL_MODEL_PATH=~/.config/mnote/models/ggml-base.en.bin
-LOCAL_MODEL_SIZE=base
 DEFAULT_LANGUAGE=auto
+WHISPER_MODEL_EN=faster-whisper-medium-en-cpu
+WHISPER_MODEL_DE=systran-faster-whisper-large-v3
+WHISPER_MODEL_ES=systran-faster-whisper-large-v3
+WHISPER_MODEL_FR=systran-faster-whisper-large-v3
 CHATGPT_MODEL=gpt-4o`
 				configFile := filepath.Join(os.Getenv("HOME"), ".config", "mnote", "config")
 				if err := os.WriteFile(configFile, []byte(defaultConfig), 0644); err != nil {
@@ -134,15 +99,6 @@ CHATGPT_MODEL=gpt-4o`
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Expand model path
-	if strings.HasPrefix(config.LocalModelPath, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get home directory: %w", err)
-		}
-		config.LocalModelPath = filepath.Join(home, config.LocalModelPath[2:])
-	}
-
 	// Validate configuration
 	if err := ValidateConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
@@ -154,21 +110,19 @@ CHATGPT_MODEL=gpt-4o`
 // GetWhisperModel returns the appropriate Whisper model for the given language
 func (c *Config) GetWhisperModel(lang string) string {
 	if lang == "auto" {
-		// For auto-detection, use the large model
-		return "systran-faster-whisper-large-v3"
+		return c.WhisperModelEN
 	}
 
-	// Map languages to models
-	langModelMap := map[string]string{
-		"en": "faster-whisper-medium-en-cpu",
-		"de": "systran-faster-whisper-large-v3",
-		"es": "systran-faster-whisper-large-v3",
-		"fr": "systran-faster-whisper-large-v3",
+	switch lang {
+	case "en":
+		return c.WhisperModelEN
+	case "de":
+		return c.WhisperModelDE
+	case "es":
+		return c.WhisperModelES
+	case "fr":
+		return c.WhisperModelFR
+	default:
+		return c.WhisperModelEN
 	}
-
-	if model, ok := langModelMap[lang]; ok {
-		return model
-	}
-	// Fallback to large model if language not supported
-	return "systran-faster-whisper-large-v3"
 }

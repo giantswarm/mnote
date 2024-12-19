@@ -1,21 +1,7 @@
-transcription_backend: local
-default_language: auto
-chatgpt_model: gpt-4o
-
-catalog:
-  faster-whisper-medium-en-cpu:
-    enabled: true
-    features: ["SpeechToText"]
-    owner: systran
-    url: "hf://systran/faster-whisper-medium-en"
-    engine: FasterWhisper
-    language: "en"
-    localPath: "~/.config/mnote/models/faster-whisper-medium-en.bin"
-
-  systran-faster-whisper-large-v3:
-    enabled: true
-    features: ["SpeechToText"]
-    owner: systran
-    url: "hf://systran/faster-whisper-large-v3"
-    engine: FasterWhisper
-    localPath: "~/.config/mnote/models/faster-whisper-large-v3.bin"
+TRANSCRIPTION_API_URL: https://api.kubeai.org/v1/audio/transcriptions
+DEFAULT_LANGUAGE: auto
+WHISPER_MODEL_EN: faster-whisper-medium-en-cpu
+WHISPER_MODEL_DE: systran-faster-whisper-large-v3
+WHISPER_MODEL_ES: systran-faster-whisper-large-v3
+WHISPER_MODEL_FR: systran-faster-whisper-large-v3
+CHATGPT_MODEL: gpt-4o

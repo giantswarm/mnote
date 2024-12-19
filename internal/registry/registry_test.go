@@ -17,8 +17,13 @@ func (m *mockTranscriber) TranscribeAudio(audioPath string, lang string) (string
 func TestBackendRegistry(t *testing.T) {
 	// Create test config
 	cfg := &config.Config{
-		TranscriptionBackend: "test",
 		TranscriptionAPIURL: "http://test.local",
+		DefaultLanguage:    "auto",
+		WhisperModelEN:    "faster-whisper-medium-en-cpu",
+		WhisperModelDE:    "systran-faster-whisper-large-v3",
+		WhisperModelES:    "systran-faster-whisper-large-v3",
+		WhisperModelFR:    "systran-faster-whisper-large-v3",
+		ChatGPTModel:      "gpt-4o",
 	}
 
 	t.Run("register and retrieve backend", func(t *testing.T) {

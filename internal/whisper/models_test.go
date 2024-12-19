@@ -1,10 +1,16 @@
 package whisper
 
 import (
+	"os"
 	"testing"
 )
 
 func TestGetModelPath(t *testing.T) {
+	// Create temporary directory and set HOME
+	tmpDir := t.TempDir()
+	os.Setenv("HOME", tmpDir)
+	defer os.Unsetenv("HOME")
+
 	tests := []struct {
 		name        string
 		modelName   string

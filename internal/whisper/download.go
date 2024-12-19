@@ -38,39 +38,41 @@ func expandPath(path string) (string, error) {
 }
 
 // DownloadModel downloads a model from HuggingFace and saves it to the specified path
-func DownloadModel(modelConfig config.ModelConfig) (string, error) {
-	if modelConfig.URL == "" {
-		return "", fmt.Errorf("model URL not specified")
+func DownloadModel(cfg *config.Config, lang string) (string, error) {
+	// Get model based on language
+	modelName := cfg.GetWhisperModel(lang)
+	if modelName == "" {
+		return "", fmt.Errorf("no model configured for language: %s", lang)
 	}
 
-	if modelConfig.LocalPath == "" {
-		return "", fmt.Errorf("local path not specified")
-	}
-
-	// Parse HuggingFace URL
-	owner, model, err := parseHFURL(modelConfig.URL)
+	// Construct model path
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("failed to parse model URL: %w", err)
+		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Expand local path
-	localPath, err := expandPath(modelConfig.LocalPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand model path: %w", err)
-	}
+	modelPath := filepath.Join(homeDir, ".config", "mnote", "models", modelName+".bin")
 
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(modelPath), 0755); err != nil {
 		return "", fmt.Errorf("failed to create model directory: %w", err)
 	}
 
 	// Check if model already exists
-	if _, err := os.Stat(localPath); err == nil {
-		return localPath, nil // Model already exists
+	if _, err := os.Stat(modelPath); err == nil {
+		return modelPath, nil // Model already exists
 	}
 
 	// Construct HuggingFace download URL
-	downloadURL := fmt.Sprintf("https://huggingface.co/%s/%s/resolve/main/model.bin", owner, model)
+	var downloadURL string
+	switch modelName {
+	case "faster-whisper-medium-en-cpu":
+		downloadURL = "https://huggingface.co/systran/faster-whisper-medium-en/resolve/main/model.bin"
+	case "systran-faster-whisper-large-v3":
+		downloadURL = "https://huggingface.co/systran/faster-whisper-large-v3/resolve/main/model.bin"
+	default:
+		return "", fmt.Errorf("unknown model: %s", modelName)
+	}
 
 	// Download model
 	resp, err := http.Get(downloadURL)
@@ -84,7 +86,7 @@ func DownloadModel(modelConfig config.ModelConfig) (string, error) {
 	}
 
 	// Create temporary file for downloading
-	tmpFile := localPath + ".download"
+	tmpFile := modelPath + ".download"
 	f, err := os.Create(tmpFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to create temporary file: %w", err)
@@ -99,9 +101,9 @@ func DownloadModel(modelConfig config.ModelConfig) (string, error) {
 	f.Close()
 
 	// Move temporary file to final location
-	if err := os.Rename(tmpFile, localPath); err != nil {
+	if err := os.Rename(tmpFile, modelPath); err != nil {
 		return "", fmt.Errorf("failed to move model to final location: %w", err)
 	}
 
-	return localPath, nil
+	return modelPath, nil
 }

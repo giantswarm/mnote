@@ -17,13 +17,13 @@ type LocalWhisper struct {
 	modelPath string
 	model     whisperlib.Model
 	context   whisperlib.Context
-	config    config.ModelConfig
+	cfg       *config.Config
 }
 
-// NewLocalWhisper creates a new LocalWhisper instance with the specified model configuration
-func NewLocalWhisper(cfg config.ModelConfig) (*LocalWhisper, error) {
-	// Download or get existing model
-	modelPath, err := DownloadModel(cfg)
+// NewLocalWhisper creates a new LocalWhisper instance with the specified configuration
+func NewLocalWhisper(cfg *config.Config) (*LocalWhisper, error) {
+	// Get model path based on default language
+	modelPath, err := DownloadModel(cfg, cfg.DefaultLanguage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get model: %w", err)
 	}
@@ -45,15 +45,8 @@ func NewLocalWhisper(cfg config.ModelConfig) (*LocalWhisper, error) {
 		modelPath: modelPath,
 		model:     model,
 		context:   context,
-		config:    cfg,
+		cfg:       cfg,
 	}, nil
-}
-
-// New is deprecated, use NewLocalWhisper instead
-func New(modelPath string) (*LocalWhisper, error) {
-	return NewLocalWhisper(config.ModelConfig{
-		LocalPath: modelPath,
-	})
 }
 
 // Close releases resources associated with the model

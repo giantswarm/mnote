@@ -9,67 +9,43 @@ func TestValidateConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid kubeai config",
+			name: "valid config",
 			cfg: &Config{
-				TranscriptionBackend: "kubeai",
-				TranscriptionAPIURL:  "https://api.example.com",
-				Catalog: map[string]ModelConfig{
-					"faster-whisper-medium-en-cpu": {
-						Enabled:  true,
-						Features: []string{"SpeechToText"},
-						Owner:    "systran",
-						URL:      "hf://systran/faster-whisper-medium-en",
-						Engine:   "FasterWhisper",
-						Language: "en",
-					},
-				},
+				TranscriptionAPIURL: "https://api.example.com",
+				DefaultLanguage:    "auto",
+				WhisperModelEN:    "faster-whisper-medium-en-cpu",
+				WhisperModelDE:    "systran-faster-whisper-large-v3",
+				WhisperModelES:    "systran-faster-whisper-large-v3",
+				WhisperModelFR:    "systran-faster-whisper-large-v3",
+				ChatGPTModel:      "gpt-4o",
 			},
 			wantErr: false,
 		},
 		{
-			name: "valid local config",
+			name: "missing transcription URL",
 			cfg: &Config{
-				TranscriptionBackend: "local",
-				LocalModelPath:       "~/.config/mnote/models/model.bin",
-				LocalModelSize:       "base",
-				Catalog: map[string]ModelConfig{
-					"faster-whisper-large-v3": {
-						Enabled:   true,
-						Features:  []string{"SpeechToText"},
-						Owner:     "systran",
-						URL:       "hf://systran/faster-whisper-large-v3",
-						Engine:    "FasterWhisper",
-						LocalPath: "~/.config/mnote/models/model.bin",
-						Language:  "auto",
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid backend",
-			cfg: &Config{
-				TranscriptionBackend: "invalid",
-				Catalog: map[string]ModelConfig{},
+				DefaultLanguage: "auto",
+				WhisperModelEN: "faster-whisper-medium-en-cpu",
+				ChatGPTModel:   "gpt-4o",
 			},
 			wantErr: true,
 		},
 		{
-			name: "invalid model size",
+			name: "invalid language",
 			cfg: &Config{
-				TranscriptionBackend: "local",
-				LocalModelPath:       "path/to/model",
-				LocalModelSize:       "invalid",
-				Catalog:             map[string]ModelConfig{},
+				TranscriptionAPIURL: "https://api.example.com",
+				DefaultLanguage:    "invalid",
+				WhisperModelEN:    "faster-whisper-medium-en-cpu",
+				ChatGPTModel:      "gpt-4o",
 			},
 			wantErr: true,
 		},
 		{
-			name: "missing model path",
+			name: "missing ChatGPT model",
 			cfg: &Config{
-				TranscriptionBackend: "local",
-				LocalModelSize:       "base",
-				Catalog:             map[string]ModelConfig{},
+				TranscriptionAPIURL: "https://api.example.com",
+				DefaultLanguage:    "auto",
+				WhisperModelEN:    "faster-whisper-medium-en-cpu",
 			},
 			wantErr: true,
 		},

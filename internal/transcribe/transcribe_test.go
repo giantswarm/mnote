@@ -2,7 +2,6 @@ package transcribe
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -35,9 +34,6 @@ func init() {
 
 	// Register local backend with error handling
 	registry.RegisterBackend("local", func(cfg *config.Config) (interfaces.Transcriber, error) {
-		if cfg.LocalModelPath == "/nonexistent/model.bin" {
-			return nil, fmt.Errorf("model file not found: %s", cfg.LocalModelPath)
-		}
 		return &MockTranscriber{
 			ReturnText: "Test transcription",
 			ReturnErr:  nil,
@@ -52,27 +48,26 @@ func TestNewTranscriber(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "kubeai backend",
+			name: "valid config",
 			cfg: &config.Config{
-				TranscriptionBackend: "kubeai",
 				TranscriptionAPIURL: "http://example.com",
+				DefaultLanguage:    "auto",
+				WhisperModelEN:    "faster-whisper-medium-en-cpu",
+				WhisperModelDE:    "systran-faster-whisper-large-v3",
+				WhisperModelES:    "systran-faster-whisper-large-v3",
+				WhisperModelFR:    "systran-faster-whisper-large-v3",
+				ChatGPTModel:      "gpt-4o",
 			},
 			wantErr: false,
 		},
 		{
-			name: "local backend without model",
+			name: "missing API URL",
 			cfg: &config.Config{
-				TranscriptionBackend: "local",
-				LocalModelPath:      "/nonexistent/model.bin",
+				DefaultLanguage: "auto",
+				WhisperModelEN: "faster-whisper-medium-en-cpu",
+				ChatGPTModel:   "gpt-4o",
 			},
-			wantErr: true,
-		},
-		{
-			name: "invalid backend",
-			cfg: &config.Config{
-				TranscriptionBackend: "invalid",
-			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 
@@ -93,8 +88,12 @@ func TestNewTranscriber(t *testing.T) {
 func TestKubeAITranscribeAudio(t *testing.T) {
 	// Create test config
 	cfg := &config.Config{
-		TranscriptionBackend: "kubeai",
-		DefaultLanguage:     "en",
+		TranscriptionAPIURL: "http://example.com",
+		DefaultLanguage:     "auto",
+		WhisperModelEN:     "faster-whisper-medium-en-cpu",
+		WhisperModelDE:     "systran-faster-whisper-large-v3",
+		WhisperModelES:     "systran-faster-whisper-large-v3",
+		WhisperModelFR:     "systran-faster-whisper-large-v3",
 	}
 
 	// Create test server
@@ -119,8 +118,16 @@ func TestKubeAITranscribeAudio(t *testing.T) {
 		if _, ok := r.MultipartForm.File["file"]; !ok {
 			t.Error("file field missing from request")
 		}
-		if model := r.FormValue("model"); model == "" {
+
+		// Verify model field matches expected model for language
+		model := r.FormValue("model")
+		if model == "" {
 			t.Error("model field missing from request")
+		}
+		language := r.FormValue("language")
+		expectedModel := cfg.GetWhisperModel(language)
+		if model != expectedModel {
+			t.Errorf("incorrect model for language %s, got %s, want %s", language, model, expectedModel)
 		}
 
 		// Return test response

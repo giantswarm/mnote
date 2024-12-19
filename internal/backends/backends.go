@@ -1,7 +1,6 @@
 package backends
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/giantswarm/mnote/internal/config"
@@ -23,11 +22,6 @@ func RegisterBackends() {
 
 	// Register local whisper backend
 	registry.RegisterBackend("local", func(cfg *config.Config) (interfaces.Transcriber, error) {
-		modelName := whisper.GetDefaultModel(cfg.DefaultLanguage).Name
-		model, ok := cfg.Catalog[modelName]
-		if !ok {
-			return nil, fmt.Errorf("model %s not found in catalog", modelName)
-		}
-		return whisper.NewLocalWhisper(model)
+		return whisper.NewLocalWhisper(cfg)
 	})
 }

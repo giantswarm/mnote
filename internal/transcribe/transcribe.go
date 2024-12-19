@@ -13,8 +13,6 @@ import (
 
 	"github.com/giantswarm/mnote/internal/config"
 	"github.com/giantswarm/mnote/internal/interfaces"
-	"github.com/giantswarm/mnote/internal/registry"
-	"github.com/giantswarm/mnote/internal/whisper"
 )
 
 // KubeAITranscriber implements the Transcriber interface using KubeAI
@@ -30,7 +28,11 @@ type HTTPClient interface {
 
 // NewTranscriber creates a new Transcriber instance based on configuration
 func NewTranscriber(cfg *config.Config) (interfaces.Transcriber, error) {
-	return registry.GetBackend(cfg.TranscriptionBackend, cfg)
+	// Create KubeAI transcriber by default
+	return &KubeAITranscriber{
+		Config: cfg,
+		Client: &http.Client{},
+	}, nil
 }
 
 // TranscriptionResult represents the JSON response from the API
@@ -68,7 +70,7 @@ func (t *KubeAITranscriber) TranscribeAudio(audioPath, language string) (string,
 	}
 
 	// Get appropriate model for the language
-	model := whisper.GetDefaultModel(language).Name
+	model := t.Config.GetWhisperModel(language)
 	fmt.Printf("Transcribing using model: %s (language: %s)\n", model, language)
 	if err := writer.WriteField("model", model); err != nil {
 		return "", fmt.Errorf("failed to add model field: %w", err)

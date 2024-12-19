@@ -52,8 +52,13 @@ func TestProcessVideo(t *testing.T) {
 
 	// Create mock dependencies
 	cfg := &config.Config{
-		TranscriptionBackend: "kubeai",
-		TranscriptionAPIURL:  "http://test-api",
+		TranscriptionAPIURL: "http://test-api",
+		DefaultLanguage:    "auto",
+		WhisperModelEN:    "faster-whisper-medium-en-cpu",
+		WhisperModelDE:    "systran-faster-whisper-large-v3",
+		WhisperModelES:    "systran-faster-whisper-large-v3",
+		WhisperModelFR:    "systran-faster-whisper-large-v3",
+		ChatGPTModel:      "gpt-4o",
 	}
 	transcriber := &mockTranscriber{transcript: "Test transcript"}
 	summarizer := &mockSummarizer{summary: "Test summary"}

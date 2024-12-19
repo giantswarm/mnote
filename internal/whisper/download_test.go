@@ -128,102 +128,78 @@ func TestExpandPath(t *testing.T) {
 
 func TestDownloadModel(t *testing.T) {
 	tmpDir := t.TempDir()
+	os.Setenv("HOME", tmpDir)
+	defer os.Unsetenv("HOME")
 
-	// Copy test model to testdata directory
-	testModelPath := filepath.Join("testdata", "test-model.bin")
-	testModelData, err := os.ReadFile(testModelPath)
-	if err != nil {
-		t.Fatalf("failed to read test model: %v", err)
+	// Create test config
+	cfg := &config.Config{
+		DefaultLanguage: "auto",
+		WhisperModelEN: "faster-whisper-medium-en-cpu",
+		WhisperModelDE: "systran-faster-whisper-large-v3",
+		WhisperModelES: "systran-faster-whisper-large-v3",
+		WhisperModelFR: "systran-faster-whisper-large-v3",
 	}
 
 	tests := []struct {
 		name        string
-		config      config.ModelConfig
-		setupMock   func(t *testing.T, cfg config.ModelConfig) string
+		lang        string
+		wantModel   string
+		setupMock   func(t *testing.T, modelPath string)
 		wantErr     bool
 		errContains string
 	}{
 		{
-			name: "missing URL",
-			config: config.ModelConfig{
-				LocalPath: filepath.Join(tmpDir, "model.bin"),
-			},
-			wantErr:     true,
-			errContains: "model URL not specified",
-		},
-		{
-			name: "invalid URL format",
-			config: config.ModelConfig{
-				URL:       "invalid://url",
-				LocalPath: filepath.Join(tmpDir, "model.bin"),
-			},
-			wantErr:     true,
-			errContains: "invalid HuggingFace URL format",
-		},
-		{
-			name: "missing local path",
-			config: config.ModelConfig{
-				URL: "hf://systran/faster-whisper-medium-en",
-			},
-			wantErr:     true,
-			errContains: "local path not specified",
-		},
-		{
-			name: "valid config with test model",
-			config: config.ModelConfig{
-				URL:       "hf://systran/faster-whisper-medium-en",
-				LocalPath: filepath.Join(tmpDir, "model.bin"),
-			},
-			setupMock: func(t *testing.T, cfg config.ModelConfig) string {
-				// Create a minimal valid whisper model file for testing
-				modelData := []byte{
-					// Whisper magic number
-					0x77, 0x68, 0x69, 0x73, // "whis"
-					0x70, 0x65, 0x72, 0x00, // "per\0"
-					// Version 1
-					0x00, 0x00, 0x00, 0x01,
-					// Model type (base)
-					0x00, 0x00, 0x00, 0x01,
-					// Add some dummy model data
-					0x00, 0x01, 0x02, 0x03,
-					0x04, 0x05, 0x06, 0x07,
+			name:      "english model",
+			lang:      "en",
+			wantModel: "faster-whisper-medium-en-cpu",
+			setupMock: func(t *testing.T, modelPath string) {
+				if err := os.MkdirAll(filepath.Dir(modelPath), 0755); err != nil {
+					t.Fatalf("Failed to create model directory: %v", err)
 				}
-				if err := os.WriteFile(cfg.LocalPath, modelData, 0644); err != nil {
-					t.Fatalf("Failed to write test model file: %v", err)
+				if err := os.WriteFile(modelPath, []byte("test model data"), 0644); err != nil {
+					t.Fatalf("Failed to write test model: %v", err)
 				}
-				return cfg.LocalPath
 			},
 			wantErr: false,
 		},
 		{
-			name: "language-specific model",
-			config: config.ModelConfig{
-				URL:       "hf://systran/faster-whisper-large-v3",
-				LocalPath: filepath.Join(tmpDir, "large-v3.bin"),
-				Language:  "de",
-				Enabled:   true,
-				Features:  []string{"SpeechToText"},
-				Owner:     "systran",
-				Engine:    "FasterWhisper",
-			},
-			setupMock: func(t *testing.T, cfg config.ModelConfig) string {
-				if err := os.WriteFile(cfg.LocalPath, testModelData, 0644); err != nil {
-					t.Fatalf("failed to write test model: %v", err)
+			name:      "german model",
+			lang:      "de",
+			wantModel: "systran-faster-whisper-large-v3",
+			setupMock: func(t *testing.T, modelPath string) {
+				if err := os.MkdirAll(filepath.Dir(modelPath), 0755); err != nil {
+					t.Fatalf("Failed to create model directory: %v", err)
 				}
-				return cfg.LocalPath
+				if err := os.WriteFile(modelPath, []byte("test model data"), 0644); err != nil {
+					t.Fatalf("Failed to write test model: %v", err)
+				}
 			},
 			wantErr: false,
+		},
+		{
+			name:        "unsupported language",
+			lang:        "invalid",
+			wantModel:   "faster-whisper-medium-en-cpu",
+			wantErr:     false,
+			setupMock: func(t *testing.T, modelPath string) {
+				if err := os.MkdirAll(filepath.Dir(modelPath), 0755); err != nil {
+					t.Fatalf("Failed to create model directory: %v", err)
+				}
+				if err := os.WriteFile(modelPath, []byte("test model data"), 0644); err != nil {
+					t.Fatalf("Failed to write test model: %v", err)
+				}
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var expectedPath string
+			modelPath := filepath.Join(tmpDir, ".config", "mnote", "models", tt.wantModel+".bin")
 			if tt.setupMock != nil {
-				expectedPath = tt.setupMock(t, tt.config)
+				tt.setupMock(t, modelPath)
 			}
 
-			path, err := DownloadModel(tt.config)
+			path, err := DownloadModel(cfg, tt.lang)
 			if tt.wantErr {
 				if err == nil {
 					t.Error("expected error, got nil")
@@ -235,17 +211,8 @@ func TestDownloadModel(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
-			if _, err := os.Stat(path); os.IsNotExist(err) {
-				t.Errorf("model file does not exist at %s", path)
-			}
-			if tt.setupMock != nil && path != expectedPath {
-				t.Errorf("path = %q, want %q", path, expectedPath)
-			}
-
-			// Skip model initialization and transcription tests in test environment
-			// These require actual model files and will be tested in integration tests
-			if testing.Short() {
-				return
+			if path != modelPath {
+				t.Errorf("path = %q, want %q", path, modelPath)
 			}
 		})
 	}
